@@ -194,7 +194,6 @@ class IdentityController extends \yii\rest\Controller {
                         
                         if (!empty($post['socmed_id']) && !empty($post['socmed'])) {
                             
-                            $socmedFLag = true;
                             $modelUserSocialMedia->user_id = $modelUserRegister->id;
                             
                             if (strtolower($post['socmed']) === 'google') {
@@ -220,7 +219,6 @@ class IdentityController extends \yii\rest\Controller {
                             }
                         } else {
                             
-                            $socmedFLag = false;
                             $randomString = Yii::$app->security->generateRandomString();
                             $randomStringHalf = substr($randomString, 16);
                             $modelUserRegister->not_active = true;
@@ -247,19 +245,7 @@ class IdentityController extends \yii\rest\Controller {
                     
                     $transaction->commit();
                     
-                    if (!$socmedFLag) {
-                        
-                        $result['success'] = true;
-                        $result['message'] = 'Registrasi berhasil, silahkan cek email anda untuk aktivasi';
-                        $result['email'] = $modelUserRegister->email;
-                    } else {
-                        
-                        $result['success'] = true;
-                        $result['socmed'] = $post['socmed'];
-                        $result['socmed_id'] = $post['socmed_id'];
-                        $result['message'] = 'Registrasi dengan ' . $result['socmed'] . ' berhasil';
-                        $result['email'] = $modelUserRegister->email;
-                    }
+                    $result['success'] = true;
                 } else {
                     
                     $transaction->rollBack();
