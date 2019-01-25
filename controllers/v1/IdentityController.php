@@ -11,6 +11,7 @@ use core\models\UserSocialMedia;
 use core\models\UserPerson;
 use core\models\Person;
 use frontend\models\UserRegister;
+use kartik\form\ActiveForm;
 
 class IdentityController extends \yii\rest\Controller {
     
@@ -25,7 +26,9 @@ class IdentityController extends \yii\rest\Controller {
                 'verbs' => [
                     'class' => VerbFilter::className(),
                     'actions' => [
-                        'login' => ['post'],
+                        'login' => ['POST'],
+                        'login-socmed' => ['POST'],
+                        'register' => ['POST']
                     ],
                 ],
             ]);
@@ -34,8 +37,8 @@ class IdentityController extends \yii\rest\Controller {
     public function actionLogin() {
         
         $post = Yii::$app->request->post();
-        $model = new LoginForm();
         
+        $model = new LoginForm();
         $model->login_id = $post['login_id'];
         $model->password = $post['password'];
         
@@ -62,7 +65,7 @@ class IdentityController extends \yii\rest\Controller {
         } else {
             
             $result['success'] = false;
-            $result['message'] = $model->getErrors()['password'][0];
+            $result['message'] = $model->getErrors();
         }
         
         return $result;
@@ -74,7 +77,7 @@ class IdentityController extends \yii\rest\Controller {
         
         $loginFlag = false;
         $result = [];
-            
+        
         $modelUser = User::find()
             ->joinWith(['userSocialMedia'])
             ->andWhere(['email' => $post['socmed_email']])
@@ -85,6 +88,8 @@ class IdentityController extends \yii\rest\Controller {
             $result['success'] = false;
             $result['message'] = 'Redirect ke halaman register';
         } else {
+            
+            $transaction = Yii::$app->db->beginTransaction();
             
             $modelUserSocialMedia = !empty($modelUser->userSocialMedia) ? $modelUser->userSocialMedia : new UserSocialMedia();
             
@@ -127,6 +132,8 @@ class IdentityController extends \yii\rest\Controller {
                     
                     if ($model->getUser()->save()) {
                         
+                        $transaction->commit();
+                        
                         $result['success'] = true;
                         $result['socmed_email'] = $post['socmed_email'];
                         $result['socmed_id'] = $post['socmed_id'];
@@ -136,10 +143,14 @@ class IdentityController extends \yii\rest\Controller {
                     }
                 } else {
                     
+                    $transaction->rollBack();
+                    
                     $result['success'] = false;
                     $result['message'] = $model->getErrors();
                 }
             } else {
+                
+                $transaction->rollBack();
                 
                 $result['success'] = false;
                 $result['message'] = 'Login Gagal';
@@ -151,7 +162,7 @@ class IdentityController extends \yii\rest\Controller {
     
     public function actionRegister()
     {
-        $result = [];
+        $post = Yii::$app->request->post();
         
         $modelUserRegister = new UserRegister();
         $modelPerson = new Person();
@@ -161,20 +172,23 @@ class IdentityController extends \yii\rest\Controller {
             ->andWhere(['nama_level' => 'User'])
             ->asArray()->one();
         
-        $post = Yii::$app->request->post();
+        $transaction = Yii::$app->db->beginTransaction();
+        $flag = false;
         
-        if ($post['password'] == $post['repeat_password']) {
+        $result = [];
+    
+        $modelUserRegister->user_level_id = $userLevel['id'];
+        $modelUserRegister->email = $post['email'];
+        $modelUserRegister->username = $post['username'];
+        $modelUserRegister->full_name = $post['first_name'] . ' ' . $post['last_name'];
+        $modelUserRegister->password = $post['password'];
+        $modelUserRegister->password_repeat = $post['password_repeat'];
+        
+        if (($flag = $modelUserRegister->validate())) {
             
-            $transaction = Yii::$app->db->beginTransaction();
-            $flag = false;
-        
-            $modelUserRegister->user_level_id = $userLevel['id'];
-            $modelUserRegister->email = $post['email'];
-            $modelUserRegister->username = $post['username'];
-            $modelUserRegister->full_name = $post['first_name'] . ' ' . $post['last_name'];
             $modelUserRegister->setPassword($post['password']);
             $modelUserRegister->password_repeat = $modelUserRegister->password;
-        
+    
             if (($flag = $modelUserRegister->save())) {
                 
                 $modelPerson->first_name = $post['first_name'];
@@ -210,12 +224,11 @@ class IdentityController extends \yii\rest\Controller {
                                     'email' => $post['email'],
                                     'full_name' => $post['first_name'] . ' ' . $post['last_name'],
                                     'socmed' => strtolower($post['socmed']) === 'google' ? 'Google' : 'Facebook',
-                                ]
-                                    )
-                                    ->setFrom([Yii::$app->params['supportEmail'] => Yii::$app->name . ' Support'])
-                                    ->setTo($post['email'])
-                                    ->setSubject('Welcome to ' . Yii::$app->name)
-                                    ->send();
+                                ])
+                                ->setFrom([Yii::$app->params['supportEmail'] => Yii::$app->name . ' Support'])
+                                ->setTo($post['email'])
+                                ->setSubject('Welcome to ' . Yii::$app->name)
+                                ->send();
                             }
                         } else {
                             
@@ -230,38 +243,29 @@ class IdentityController extends \yii\rest\Controller {
                                     'email' => $post['email'],
                                     'full_name' => $post['first_name'] . ' ' . $post['last_name'],
                                     'userToken' => $modelUserRegister->account_activation_token
-                                ]
-                                    )
-                                    ->setFrom([Yii::$app->params['supportEmail'] => Yii::$app->name . ' Support'])
-                                    ->setTo($post['email'])
-                                    ->setSubject(Yii::$app->name . ' Account Activation')
-                                    ->send();
+                                ])
+                                ->setFrom([Yii::$app->params['supportEmail'] => Yii::$app->name . ' Support'])
+                                ->setTo($post['email'])
+                                ->setSubject(Yii::$app->name . ' Account Activation')
+                                ->send();
                             }
                         }
                     }
                 }
-                
-                if ($flag) {
-                    
-                    $transaction->commit();
-                    
-                    $result['success'] = true;
-                } else {
-                    
-                    $transaction->rollBack();
-                    
-                    $result['success'] = false;
-                    $result['message'] = 'Registrasi gagal';
-                }
-            } else {
-                
-                $result['success'] = false;
-                $result['message'] = $modelUserRegister->getErrors();
             }
+        }
+        
+        if ($flag) {
+            
+            $transaction->commit();
+            
+            $result['success'] = true;
         } else {
             
+            $transaction->rollBack();
+            
             $result['success'] = false;
-            $result['message'] = 'Password tidak sama';
+            $result['message'] = $modelUserRegister->getErrors();
         }
         
         return $result;
