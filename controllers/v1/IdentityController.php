@@ -17,8 +17,8 @@ class IdentityController extends \yii\rest\Controller {
     /**
      * @inheritdoc
      */
-    public function behaviors() {
-        
+    public function behaviors()
+    {
         return array_merge(
             [],
             [
@@ -33,8 +33,8 @@ class IdentityController extends \yii\rest\Controller {
             ]);
     }
     
-    public function actionLogin() {
-        
+    public function actionLogin()
+    {
         $post = Yii::$app->request->post();
         
         $model = new LoginForm();
@@ -51,7 +51,13 @@ class IdentityController extends \yii\rest\Controller {
             
             $model->getUser()->login_token = substr($randomString, 0, 15) . $model->getUser()->id . $randomStringHalf . '_' . time();
             
-            $flag = $model->getUser()->save();
+            if (!($flag = $model->getUser()->save())) {
+                
+                $result['error'] = $model->getUser()->getErrors();
+            }
+        } else {
+            
+            $result['error'] = $model->getErrors();
         }
         
         if ($flag) {
@@ -63,14 +69,14 @@ class IdentityController extends \yii\rest\Controller {
         } else {
             
             $result['success'] = false;
-            $result['error'] = $model->getErrors();
+            $result['message'] = 'Login gagal';
         }
         
         return $result;
     }
     
-    public function actionLoginSocmed() {
-        
+    public function actionLoginSocmed()
+    {
         $post = Yii::$app->request->post();
         
         $result = [];
@@ -97,7 +103,10 @@ class IdentityController extends \yii\rest\Controller {
                     
                     $modelUserSocialMedia->user_id = $modelUser->id;
                     $modelUserSocialMedia->facebook_id = $post['socmed_id'];
-                    $flag = $modelUserSocialMedia->save();
+                    if (!($flag = $modelUserSocialMedia->save())) {
+                        
+                        $result['error'] = $modelUserSocialMedia->getErrors();
+                    }
                 } else {
                     
                     $flag = ($modelUserSocialMedia->facebook_id === $post['socmed_id']);
@@ -108,7 +117,10 @@ class IdentityController extends \yii\rest\Controller {
                     
                     $modelUserSocialMedia->user_id = $modelUser->id;
                     $modelUserSocialMedia->google_id = $post['socmed_id'];
-                    $flag = $modelUserSocialMedia->save();
+                    if (!($flag = $modelUserSocialMedia->save())) {
+                        
+                        $result['error'] = $modelUserSocialMedia->getErrors();
+                    }
                 } else {
                     
                     $flag = ($modelUserSocialMedia->google_id === $post['socmed_id']);
@@ -128,7 +140,13 @@ class IdentityController extends \yii\rest\Controller {
                     
                     $model->getUser()->login_token = substr($randomString, 0, 15) . $model->getUser()->id . $randomStringHalf . '_' . time();
                     
-                    $flag = $model->getUser()->save();
+                    if (!($flag = $model->getUser()->save())) {
+                        
+                        $result['error'] = $model->getUser()->getErrors();
+                    }
+                } else {
+                    
+                    $result['error'] = $model->getErrors();
                 }
             } 
             
@@ -147,7 +165,7 @@ class IdentityController extends \yii\rest\Controller {
                 $transaction->rollBack();
                 
                 $result['success'] = false;
-                $result['error'] = $model->getErrors();
+                $result['message'] = 'Login gagal';
             }
         }
         
@@ -223,6 +241,9 @@ class IdentityController extends \yii\rest\Controller {
                                 ->setTo($post['email'])
                                 ->setSubject('Welcome to ' . Yii::$app->name)
                                 ->send();
+                            } else {
+                                
+                                $result['error'] = $modelUserSocialMedia->getErrors();
                             }
                         } else {
                             
@@ -242,11 +263,26 @@ class IdentityController extends \yii\rest\Controller {
                                 ->setTo($post['email'])
                                 ->setSubject(Yii::$app->name . ' Account Activation')
                                 ->send();
+                            } else {
+                                
+                                $result['error'] = $modelUserRegister->getErrors();
                             }
                         }
+                    } else {
+                        
+                        $result['error'] = $modelUserPerson->getErrors();
                     }
+                } else {
+                    
+                    $result['error'] = $modelPerson->getErrors();
                 }
+            } else {
+                
+                $result['error'] = $modelUserRegister->getErrors();
             }
+        } else {
+            
+            $result['error'] = $modelUserRegister->getErrors();
         }
         
         if ($flag) {
@@ -259,7 +295,6 @@ class IdentityController extends \yii\rest\Controller {
             $transaction->rollBack();
             
             $result['success'] = false;
-            $result['error'] = $modelUserRegister->getErrors();
         }
         
         return $result;
