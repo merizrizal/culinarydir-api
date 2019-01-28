@@ -11,7 +11,6 @@ use core\models\UserSocialMedia;
 use core\models\UserPerson;
 use core\models\Person;
 use frontend\models\UserRegister;
-use kartik\form\ActiveForm;
 
 class IdentityController extends \yii\rest\Controller {
     
@@ -42,30 +41,29 @@ class IdentityController extends \yii\rest\Controller {
         $model->login_id = $post['login_id'];
         $model->password = $post['password'];
         
+        $flag = false;
         $result = [];
         
-        if ($model->login()) {
+        if (($flag = $model->login())) {
             
             $randomString = Yii::$app->security->generateRandomString();
             $randomStringHalf = substr($randomString, 16);
             
             $model->getUser()->login_token = substr($randomString, 0, 15) . $model->getUser()->id . $randomStringHalf . '_' . time();
             
-            if ($model->getUser()->save()) {
-                
-                $result['success'] = true;
-                $result['user'] = $model->getUser()->username;
-                $result['login_token'] = $model->getUser()->login_token;
-                $result['message'] = 'Login Berhasil';
-            } else {
-                
-                $result['success'] = false;
-                $result['message'] = 'Login Gagal';
-            }
+            $flag = $model->getUser()->save();
+        }
+        
+        if ($flag) {
+            
+            $result['success'] = true;
+            $result['message'] = 'Login Berhasil';
+            $result['user'] = $model->getUser()->username;
+            $result['login_token'] = $model->getUser()->login_token;
         } else {
             
             $result['success'] = false;
-            $result['message'] = $model->getErrors();
+            $result['error'] = $model->getErrors();
         }
         
         return $result;
@@ -75,7 +73,6 @@ class IdentityController extends \yii\rest\Controller {
         
         $post = Yii::$app->request->post();
         
-        $loginFlag = false;
         $result = [];
         
         $modelUser = User::find()
@@ -90,6 +87,7 @@ class IdentityController extends \yii\rest\Controller {
         } else {
             
             $transaction = Yii::$app->db->beginTransaction();
+            $flag = false;
             
             $modelUserSocialMedia = !empty($modelUser->userSocialMedia) ? $modelUser->userSocialMedia : new UserSocialMedia();
             
@@ -99,10 +97,10 @@ class IdentityController extends \yii\rest\Controller {
                     
                     $modelUserSocialMedia->user_id = $modelUser->id;
                     $modelUserSocialMedia->facebook_id = $post['socmed_id'];
-                    $loginFlag = $modelUserSocialMedia->save();
+                    $flag = $modelUserSocialMedia->save();
                 } else {
                     
-                    $loginFlag = ($modelUserSocialMedia->facebook_id === $post['socmed_id']);
+                    $flag = ($modelUserSocialMedia->facebook_id === $post['socmed_id']);
                 } 
             } else if (strtolower($post['socmed']) === 'google') {
                 
@@ -110,50 +108,46 @@ class IdentityController extends \yii\rest\Controller {
                     
                     $modelUserSocialMedia->user_id = $modelUser->id;
                     $modelUserSocialMedia->google_id = $post['socmed_id'];
-                    $loginFlag = $modelUserSocialMedia->save();
+                    $flag = $modelUserSocialMedia->save();
                 } else {
                     
-                    $loginFlag = ($modelUserSocialMedia->google_id === $post['socmed_id']);
+                    $flag = ($modelUserSocialMedia->google_id === $post['socmed_id']);
                 }
             }
             
-            if ($loginFlag) {
+            if ($flag) {
                 
                 $model = new LoginForm();
                 $model->useSocmed = true;
                 $model->login_id = $post['socmed_email'];
                 
-                if ($model->login()) {
+                if (($flag = $model->login())) {
                     
                     $randomString = Yii::$app->security->generateRandomString();
                     $randomStringHalf = substr($randomString, 16);
                     
                     $model->getUser()->login_token = substr($randomString, 0, 15) . $model->getUser()->id . $randomStringHalf . '_' . time();
                     
-                    if ($model->getUser()->save()) {
-                        
-                        $transaction->commit();
-                        
-                        $result['success'] = true;
-                        $result['socmed_email'] = $post['socmed_email'];
-                        $result['socmed_id'] = $post['socmed_id'];
-                        $result['socmed'] = $post['socmed'];
-                        $result['login_token'] = $model->getUser()->login_token;
-                        $result['message'] = 'Login dengan ' . $result['socmed'] . ' berhasil';
-                    }
-                } else {
-                    
-                    $transaction->rollBack();
-                    
-                    $result['success'] = false;
-                    $result['message'] = $model->getErrors();
+                    $flag = $model->getUser()->save();
                 }
+            } 
+            
+            if ($flag) {
+                
+                $transaction->commit();
+                
+                $result['success'] = true;
+                $result['message'] = 'Login dengan ' . $result['socmed'] . ' berhasil';
+                $result['socmed_email'] = $post['socmed_email'];
+                $result['socmed_id'] = $post['socmed_id'];
+                $result['socmed'] = $post['socmed'];
+                $result['login_token'] = $model->getUser()->login_token;
             } else {
                 
                 $transaction->rollBack();
                 
                 $result['success'] = false;
-                $result['message'] = 'Login Gagal';
+                $result['error'] = $model->getErrors();
             }
         }
         
@@ -265,7 +259,7 @@ class IdentityController extends \yii\rest\Controller {
             $transaction->rollBack();
             
             $result['success'] = false;
-            $result['message'] = $modelUserRegister->getErrors();
+            $result['error'] = $modelUserRegister->getErrors();
         }
         
         return $result;
