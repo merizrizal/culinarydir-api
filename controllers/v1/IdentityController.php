@@ -37,12 +37,13 @@ class IdentityController extends \yii\rest\Controller {
     {
         $post = Yii::$app->request->post();
         
+        $result = [];
+        
         $model = new LoginForm();
         $model->login_id = $post['login_id'];
         $model->password = $post['password'];
         
         $flag = false;
-        $result = [];
         
         if (($flag = $model->login())) {
             
@@ -103,6 +104,7 @@ class IdentityController extends \yii\rest\Controller {
                     
                     $modelUserSocialMedia->user_id = $modelUser->id;
                     $modelUserSocialMedia->facebook_id = $post['socmed_id'];
+                    
                     if (!($flag = $modelUserSocialMedia->save())) {
                         
                         $result['error'] = $modelUserSocialMedia->getErrors();
@@ -117,6 +119,7 @@ class IdentityController extends \yii\rest\Controller {
                     
                     $modelUserSocialMedia->user_id = $modelUser->id;
                     $modelUserSocialMedia->google_id = $post['socmed_id'];
+                    
                     if (!($flag = $modelUserSocialMedia->save())) {
                         
                         $result['error'] = $modelUserSocialMedia->getErrors();
@@ -176,6 +179,8 @@ class IdentityController extends \yii\rest\Controller {
     {
         $post = Yii::$app->request->post();
         
+        $result = [];
+        
         $modelUserRegister = new UserRegister();
         $modelPerson = new Person();
         $modelUserSocialMedia = new UserSocialMedia();
@@ -186,8 +191,6 @@ class IdentityController extends \yii\rest\Controller {
         
         $transaction = Yii::$app->db->beginTransaction();
         $flag = false;
-        
-        $result = [];
     
         $modelUserRegister->user_level_id = $userLevel['id'];
         $modelUserRegister->email = $post['email'];
