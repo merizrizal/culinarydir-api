@@ -90,7 +90,8 @@ class IdentityController extends \yii\rest\Controller {
         if (empty($modelUser)) {
             
             $result['success'] = false;
-            $result['message'] = 'Redirect ke halaman register';
+            $result['message'] = 'Email belum terdaftar. Silakan registrasi terlebih dahulu.';
+            $result['action'] = 'register';
         } else {
             
             $transaction = Yii::$app->db->beginTransaction();
@@ -112,7 +113,7 @@ class IdentityController extends \yii\rest\Controller {
                 } else {
                     
                     $flag = ($modelUserSocialMedia->facebook_id === $post['socmed_id']);
-                } 
+                }
             } else if (strtolower($post['socmed']) === 'google') {
                 
                 if (empty($modelUserSocialMedia['google_id'])) {
@@ -158,7 +159,7 @@ class IdentityController extends \yii\rest\Controller {
                 $transaction->commit();
                 
                 $result['success'] = true;
-                $result['message'] = 'Login dengan ' . $result['socmed'] . ' berhasil';
+                $result['message'] = 'Login dengan ' . $post['socmed'] . ' berhasil';
                 $result['socmed_email'] = $post['socmed_email'];
                 $result['socmed_id'] = $post['socmed_id'];
                 $result['socmed'] = $post['socmed'];
@@ -168,7 +169,7 @@ class IdentityController extends \yii\rest\Controller {
                 $transaction->rollBack();
                 
                 $result['success'] = false;
-                $result['message'] = 'Login gagal';
+                $result['message'] = 'Login gagal. Akun login anda tidak terdaftar.';
             }
         }
         
