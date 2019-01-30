@@ -182,17 +182,14 @@ class IdentityController extends \yii\rest\Controller {
         
         $result = [];
         
-        $modelUserRegister = new UserRegister();
-        $modelPerson = new Person();
-        $modelUserSocialMedia = new UserSocialMedia();
+        $transaction = Yii::$app->db->beginTransaction();
+        $flag = false;
         
         $userLevel = UserLevel::find()
             ->andWhere(['nama_level' => 'User'])
             ->asArray()->one();
-        
-        $transaction = Yii::$app->db->beginTransaction();
-        $flag = false;
     
+        $modelUserRegister = new UserRegister();
         $modelUserRegister->user_level_id = $userLevel['id'];
         $modelUserRegister->email = $post['email'];
         $modelUserRegister->username = $post['username'];
@@ -207,11 +204,12 @@ class IdentityController extends \yii\rest\Controller {
     
             if (($flag = $modelUserRegister->save())) {
                 
+                $modelPerson = new Person();
                 $modelPerson->first_name = $post['first_name'];
                 $modelPerson->last_name = $post['last_name'];
                 $modelPerson->email = $post['email'];
-                $modelPerson->phone = $post['phone'];
-                $modelPerson->city_id = $post['city_id'];
+                $modelPerson->phone = !empty($post['phone']) ? $post['phone'] : null;
+                $modelPerson->city_id = !empty($post['city_id']) ? $post['city_id'] : null;
                 
                 if (($flag = $modelPerson->save())) {
                     
@@ -224,6 +222,7 @@ class IdentityController extends \yii\rest\Controller {
                         
                         if (!empty($post['socmed_id']) && !empty($post['socmed'])) {
                             
+                            $modelUserSocialMedia = new UserSocialMedia();
                             $modelUserSocialMedia->user_id = $modelUserRegister->id;
                             
                             if (strtolower($post['socmed']) === 'google') {
@@ -240,6 +239,7 @@ class IdentityController extends \yii\rest\Controller {
                                     'email' => $post['email'],
                                     'full_name' => $post['first_name'] . ' ' . $post['last_name'],
                                     'socmed' => strtolower($post['socmed']) === 'google' ? 'Google' : 'Facebook',
+                                    'isFromApi' => true
                                 ])
                                 ->setFrom([Yii::$app->params['supportEmail'] => Yii::$app->name . ' Support'])
                                 ->setTo($post['email'])
@@ -261,7 +261,8 @@ class IdentityController extends \yii\rest\Controller {
                                 Yii::$app->mailer->compose(['html' => 'account_activation'], [
                                     'email' => $post['email'],
                                     'full_name' => $post['first_name'] . ' ' . $post['last_name'],
-                                    'userToken' => $modelUserRegister->account_activation_token
+                                    'userToken' => $modelUserRegister->account_activation_token,
+                                    'isFromApi' => true
                                 ])
                                 ->setFrom([Yii::$app->params['supportEmail'] => Yii::$app->name . ' Support'])
                                 ->setTo($post['email'])
