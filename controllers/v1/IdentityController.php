@@ -20,7 +20,7 @@ class IdentityController extends \yii\rest\Controller {
     public function behaviors()
     {
         return array_merge(
-            [],
+            parent::behaviors(),
             [
                 'verbs' => [
                     'class' => VerbFilter::className(),
@@ -112,7 +112,10 @@ class IdentityController extends \yii\rest\Controller {
                     }
                 } else {
                     
-                    $flag = ($modelUserSocialMedia->facebook_id === $post['socmed_id']);
+                    if (!($flag = ($modelUserSocialMedia->facebook_id === $post['socmed_id']))) {
+                        
+                        $result['action'] = 'register';
+                    }
                 }
             } else if (strtolower($post['socmed']) === 'google') {
                 
@@ -127,7 +130,10 @@ class IdentityController extends \yii\rest\Controller {
                     }
                 } else {
                     
-                    $flag = ($modelUserSocialMedia->google_id === $post['socmed_id']);
+                    if (!($flag = ($modelUserSocialMedia->google_id === $post['socmed_id']))) {
+                        
+                        $result['action'] = 'register';
+                    }
                 }
             }
             
