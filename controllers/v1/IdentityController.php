@@ -11,6 +11,10 @@ use core\models\UserSocialMedia;
 use core\models\UserPerson;
 use core\models\Person;
 use frontend\models\UserRegister;
+use frontend\models\RequestResetPassword;
+use frontend\models\ResetPassword;
+use yii\web\BadRequestHttpException;
+use yii\base\InvalidArgumentException;
 
 class IdentityController extends \yii\rest\Controller {
     
@@ -306,6 +310,93 @@ class IdentityController extends \yii\rest\Controller {
             $transaction->rollBack();
             
             $result['success'] = false;
+        }
+        
+        return $result;
+    }
+    
+    public function actionRequestResetPasswordToken()
+    {
+        $post = Yii::$app->request->post();
+        
+        $result = [];
+        
+        $flag = false;
+        
+        $model = new RequestResetPassword();
+        $model->email = $post['email'];
+        $model->isRequestToken = true;
+        
+        if (($flag = $model->validate())) {
+            
+            if (($flag = $model->sendEmail(true))) {
+                
+                $result['message'] = Yii::t('app', 'We have sent a verification code to') . ' ' . $model->email;
+            } else {
+                
+                $result['message'] = Yii::t('app', 'An error has occurred while requesting password reset');
+            }
+        } else {
+            
+            $result['error'] = $model->getErrors();
+        }
+        
+        if ($flag) {
+            
+            $result['success'] = true;
+            $result['email'] = $model->email;
+        } else {
+            
+            $result['success'] = false;
+        }
+        
+        return $result;
+    }
+    
+    public function actionTokenVerification()
+    {
+        $post = Yii::$app->request->post();
+        
+        $result = [];
+        
+        $model = new RequestResetPassword();
+        $model->email = $post['email'];
+        $model->verificationCode = $post['verification_code'];
+        
+        if ($model->validate()) {
+            
+            $result['success'] = true;
+            $result['email'] = $model->email;
+            $result['token'] = $model->token;
+        } else {
+            
+            $result['success'] = false;
+            $result['error'] = $model->getErrors();
+        }
+        
+        return $result;
+    }
+    
+    public function actionResetPassword()
+    {
+        $post = Yii::$app->request->post();
+        
+        $result = [];
+        
+        $model = new ResetPassword();
+        $model->email = $post['email'];
+        $model->token = $post['token'];
+        $model->password = $post['password'];
+        
+        if ($model->validate() && $model->resetPassword()) {
+            
+            $result['success'] = true;
+            $result['message'] = 'Password baru berhasil disimpan';
+            $result['username'] = $model->username;
+        } else {
+            
+            $result['success'] = false;
+            $result['error'] = $model->getErrors();
         }
         
         return $result;
