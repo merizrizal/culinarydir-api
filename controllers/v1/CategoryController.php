@@ -2,10 +2,10 @@
 
 namespace api\controllers\v1;
 
-use core\models\City;
+use core\models\Category;
 use yii\filters\VerbFilter;
 
-class CityController extends \yii\rest\Controller {
+class CategoryController extends \yii\rest\Controller {
     
     /**
      * @inheritdoc
@@ -24,10 +24,10 @@ class CityController extends \yii\rest\Controller {
             ]);
     }
     
-    public function actionList() 
+    public function actionList()
     {
         
-        $model = City::find()
+        $model = Category::find()
             ->select('id, name')
             ->orderBy(['name' => SORT_ASC])
             ->asArray()->all();

@@ -1,7 +1,6 @@
 <?php
 namespace api\controllers;
 
-use Yii;
 use yii\filters\VerbFilter;
 
 /**

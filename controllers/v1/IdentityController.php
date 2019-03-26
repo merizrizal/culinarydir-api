@@ -2,19 +2,17 @@
 
 namespace api\controllers\v1;
 
-use Yii;
-use yii\filters\VerbFilter;
 use common\models\LoginForm;
+use core\models\Person;
 use core\models\User;
 use core\models\UserLevel;
-use core\models\UserSocialMedia;
 use core\models\UserPerson;
-use core\models\Person;
-use frontend\models\UserRegister;
+use core\models\UserSocialMedia;
 use frontend\models\RequestResetPassword;
 use frontend\models\ResetPassword;
-use yii\web\BadRequestHttpException;
-use yii\base\InvalidArgumentException;
+use frontend\models\UserRegister;
+use Yii;
+use yii\filters\VerbFilter;
 
 class IdentityController extends \yii\rest\Controller {
     
@@ -31,7 +29,10 @@ class IdentityController extends \yii\rest\Controller {
                     'actions' => [
                         'login' => ['POST'],
                         'login-socmed' => ['POST'],
-                        'register' => ['POST']
+                        'register' => ['POST'],
+                        'request-reset-password-token' => ['POST'],
+                        'token-verification' => ['POST'],
+                        'reset-password' => ['POST']
                     ],
                 ],
             ]);
