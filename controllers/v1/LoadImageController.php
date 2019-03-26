@@ -28,7 +28,7 @@ class LoadImageController extends \yii\web\Controller {
             ]);
     }
     
-    public function actionRegistryBusiness($image, $w = null, $h = null, $compress = true)
+    public function actionRegistryBusiness($image, $w = null, $h = null)
     {
         $this->image = Yii::getAlias('@uploads') . '/img/registry_business/' . $image;
         
@@ -37,7 +37,7 @@ class LoadImageController extends \yii\web\Controller {
             $this->image = Yii::getAlias('@uploads') . '/img/registry_business/'  . $w . 'x' . $h . $image;
             
             Image::thumbnail('@uploads' . '/img/registry_business/' . $image, $w, $h)
-                ->save($this->image, ['quality' => $compress ? 50 : 100]);
+                ->save($this->image);
         }
         
         Yii::$app->getResponse()->getHeaders()
