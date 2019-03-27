@@ -59,4 +59,36 @@ class LoadImageController extends \yii\web\Controller {
         
         return Yii::$app->response->send();
     }
+    
+    public function actionUser($image, $w = null, $h = null)
+    {
+        $this->image = Yii::getAlias('@uploads') . '/img/user/' . $image;
+        
+        if (!empty($w) || !empty($h)) {
+            
+            $this->image = Yii::getAlias('@uploads') . '/img/user/'  . $w . 'x' . $h . $image;
+            
+            Image::thumbnail('@uploads' . '/img/user/' . $image, $w, $h)
+            ->save($this->image);
+        }
+        
+        Yii::$app->getResponse()->getHeaders()
+        ->set('Pragma', 'public')
+        ->set('Expires', '0')
+        ->set('Cache-Control', 'must-revalidate, post-check=0, pre-check=0')
+        ->set('Content-Transfer-Encoding', 'binary')
+        ->set('Content-type', 'image/jpeg');
+        
+        try {
+            
+            Yii::$app->response->stream = fopen($this->image, 'r');
+        } catch (\yii\base\ErrorException $e) {
+            
+            throw new NotFoundHttpException('The requested image does not exist.');
+        }
+        
+        Yii::$app->response->format = Response::FORMAT_RAW;
+        
+        return Yii::$app->response->send();
+    }
 }
