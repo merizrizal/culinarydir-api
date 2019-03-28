@@ -33,7 +33,11 @@ class SearchResultController extends \yii\rest\Controller {
         if (Yii::$app->request->get('search_type') == 'favorite' || Yii::$app->request->get('search_type') == 'online-order') {
         
             $modelBusiness = Business::find()
-                ->select(['business.id', 'business.name', 'business.unique_name', 'business.is_active', 'business.membership_type_id', 'business_image.image'])
+                ->select([
+                    'business.id', 'business.name', 'business.unique_name', 'business.is_active', 'business.membership_type_id', 'business_image.image',
+                    'business_detail.business_id', 'business_detail.price_min', 'business_detail.price_max',
+                    'business_detail.voters', 'business_detail.vote_value', 'business_detail.vote_points', 'business_detail.love_value'
+                ])
                 ->joinWith([
                     
                     'businessCategories' => function ($query) {
@@ -75,7 +79,7 @@ class SearchResultController extends \yii\rest\Controller {
                     
                         $query->select([
                             'business_detail.business_id', 'business_detail.price_min', 'business_detail.price_max', 
-                            'business_detail.voters', 'business_detail.vote_value', 'business_detail.vote_points'
+                            'business_detail.voters', 'business_detail.vote_value', 'business_detail.vote_points', 'business_detail.love_value'
                         ]);
                     },
                     'userLoves' => function ($query) {
@@ -101,7 +105,6 @@ class SearchResultController extends \yii\rest\Controller {
                 ])
                 ->andWhere(['membership_type.as_archive' => false])
                 ->andFilterWhere(['business_location.city_id' => Yii::$app->request->get('city_id')])
-                ->andFilterWhere(['lower(city.name)' => str_replace('-', ' ', Yii::$app->request->get('city'))])
                 ->andFilterWhere([
                     'OR', 
                     ['ilike', 'business.name', Yii::$app->request->get('keyword')],

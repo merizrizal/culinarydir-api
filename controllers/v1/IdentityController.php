@@ -70,7 +70,7 @@ class IdentityController extends \yii\rest\Controller {
             
             $result['success'] = true;
             $result['message'] = 'Login Berhasil';
-            $result['user'] = $model->getUser()->username;
+            $result['username'] = $model->getUser()->username;
             $result['login_token'] = $model->getUser()->login_token;
         } else {
             
