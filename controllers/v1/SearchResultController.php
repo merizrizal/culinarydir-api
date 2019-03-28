@@ -122,6 +122,15 @@ class SearchResultController extends \yii\rest\Controller {
                 
                 $modelBusiness = $modelBusiness->andFilterWhere(['product_service.code_name' => 'order-online']);
             }
+            
+            if (!empty(Yii::$app->request->get('coordinate_lat')) && !empty(Yii::$app->request->get('coordinate_lng')) && !empty(Yii::$app->request->get('radius_map'))) {
+                
+                $latitude = Yii::$app->request->get('coordinate_lat');
+                $longitude = Yii::$app->request->get('coordinate_lng');
+                $radius = Yii::$app->request->get('radius_map');
+                
+                $modelBusiness = $modelBusiness->andWhere('(acos(sin(radians(split_part("business_location"."coordinate" , \',\', 1)::double precision)) * sin(radians(' . $latitude . ')) + cos(radians(split_part("business_location"."coordinate" , \',\', 1)::double precision)) * cos(radians(' . $latitude . ')) * cos(radians(split_part("business_location"."coordinate" , \',\', 2)::double precision) - radians(' . $longitude . '))) * 6356 * 1000) <= ' . $radius);
+            }
                 
             $modelBusiness = $modelBusiness->orderBy(['business.id' => SORT_DESC])
                 ->distinct()
