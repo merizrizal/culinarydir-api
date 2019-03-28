@@ -23,6 +23,10 @@ class LoadImageController extends \yii\web\Controller {
                     'class' => VerbFilter::className(),
                     'actions' => [
                         'registry-business' => ['GET'],
+                        'user' => ['GET'],
+                        'user-post' => ['GET'],
+                        'business-promo' => ['GET'],
+                        'promo' => ['GET'],
                     ],
                 ],
             ]);
