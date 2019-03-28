@@ -36,7 +36,10 @@ class SearchResultController extends \yii\rest\Controller {
                 ->select([
                     'business.id', 'business.name', 'business.unique_name', 'business.is_active', 'business.membership_type_id', 'business_image.image',
                     'business_detail.business_id', 'business_detail.price_min', 'business_detail.price_max',
-                    'business_detail.voters', 'business_detail.vote_value', 'business_detail.vote_points', 'business_detail.love_value'
+                    'business_detail.voters', 'business_detail.vote_value', 'business_detail.vote_points', 'business_detail.love_value',
+                    'business_location.address_type', 'business_location.address',
+                    'business_location.city_id', 'business_location.coordinate',
+                    'city.name as city_name'
                 ])
                 ->joinWith([
                     
