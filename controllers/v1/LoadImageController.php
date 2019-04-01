@@ -26,8 +26,7 @@ class LoadImageController extends \yii\web\Controller {
                         'user' => ['GET'],
                         'user-post' => ['GET'],
                         'business-promo' => ['GET'],
-                        'promo' => ['GET'],
-                        'load-image' => ['GET'],
+                        'promo' => ['GET']
                     ],
                 ],
             ]);
