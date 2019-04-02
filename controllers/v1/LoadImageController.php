@@ -34,39 +34,53 @@ class LoadImageController extends \yii\web\Controller {
 
     public function actionRegistryBusiness($image, $w = null, $h = null)
     {
-        return $this->loadImage('registry_business', $image, $w, $h);
+        return $this->loadImage('registry_business/', $image, $w, $h);
     }
 
     public function actionUser($image, $w = null, $h = null)
     {
-        return $this->loadImage('user', $image, $w, $h);
+        return $this->loadImage('user/', $image, $w, $h);
     }
 
     public function actionUserPost($image, $w = null, $h = null)
     {
-        return $this->loadImage('user_post', $image, $w, $h);
+        return $this->loadImage('user_post/', $image, $w, $h);
     }
 
     public function actionBusinessPromo($image, $w = null, $h = null)
     {
-        return $this->loadImage('business_promo', $image, $w, $h);
+        return $this->loadImage('business_promo/', $image, $w, $h);
     }
 
     public function actionPromo($image, $w = null, $h = null)
     {
-        return $this->loadImage('promo', $image, $w, $h);
+        return $this->loadImage('promo/', $image, $w, $h);
     }
 
     private function loadImage($directory, $image, $w = null, $h = null)
     {
-        $this->image = Yii::getAlias('@uploads') . '/img/' . $directory . '/' . $image;
-
-        if (!empty($w) || !empty($h)) {
-
-            $this->image = Yii::getAlias('@uploads') . '/img/' . $directory . '/'  . $w . 'x' . $h . $image;
-
-            Image::thumbnail('@uploads' . '/img/' . $directory . '/' . $image, $w, $h)
-                ->save($this->image);
+        if (empty($image)) {
+            
+            return $this->loadImage('', 'image-no-available.jpg', $w, $h);
+        }
+        
+        try {
+            
+            $this->image = Yii::getAlias('@uploads') . '/img/' . $directory . $image;
+    
+            if (!empty($w) || !empty($h)) {
+    
+                $this->image = Yii::getAlias('@uploads') . '/img/' . $directory . $w . 'x' . $h . $image;
+    
+                Image::thumbnail('@uploads' . '/img/' . $directory . $image, $w, $h)
+                    ->save($this->image);
+            }
+        } catch (\Imagine\Exception\InvalidArgumentException $e) {
+            
+            if (strpos($e->getMessage(), 'does not exist') !== false) {
+                
+                return $this->loadImage('', 'image-no-available.jpg', $w, $h);
+            }
         }
 
         Yii::$app->getResponse()->getHeaders()
