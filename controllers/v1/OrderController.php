@@ -2,11 +2,14 @@
 
 namespace api\controllers\v1;
 
-use frontend\components\AddressType;
 use Yii;
+use frontend\components\AddressType;
 use yii\filters\VerbFilter;
 use core\models\TransactionSession;
 use yii\web\UploadedFile;
+use ElephantIO\Client;
+use ElephantIO\Engine\SocketIO\Version2X;
+use core\models\UserDriver;
 
 class OrderController extends \yii\rest\Controller
 {
@@ -25,8 +28,11 @@ class OrderController extends \yii\rest\Controller
                         'get-order-header' => ['POST'],
                         'get-order-detail' => ['POST'],
                         'upload-receipt' => ['POST'],
-                        'update-status-order' => ['POST'],
                         'confirm-price' => ['POST'],
+                        'take-order' => ['POST'],
+                        'cancel-order' => ['POST'],
+                        'send-order' => ['POST'],
+                        'finish-order' => ['POST'],
                         'calculate-delivery-fee' => ['POST'],
                         'update-driver-position' => ['POST']
                     ],
@@ -92,14 +98,12 @@ class OrderController extends \yii\rest\Controller
     
     public function actionGetOrderDetail()
     {
-        $post = Yii::$app->request->post();
-        
         $modelTransactionSession = TransactionSession::find()
             ->joinWith([
                 'transactionItems',
                 'transactionItems.businessProduct'
             ])
-            ->andWhere(['ilike', 'order_id', $post['order_id'] . '_'])
+            ->andWhere(['ilike', 'order_id', Yii::$app->request->post()['order_id'] . '_'])
             ->asArray()->one();
         
         $result = [];
@@ -131,8 +135,6 @@ class OrderController extends \yii\rest\Controller
     public function actionUploadReceipt()
     {
         $post = Yii::$app->request->post();
-        
-        $transaction = Yii::$app->db->beginTransaction();
         $flag = false;
         
         $modelTransactionSession = TransactionSession::find()
@@ -148,6 +150,8 @@ class OrderController extends \yii\rest\Controller
         
         if (!empty($modelTransactionSession) && $file) {
             
+            $transaction = Yii::$app->db->beginTransaction();
+            
             $fileName = 'AD-' . $post['order_id'] . '.' . $file->extension;
             
             if (($flag = $file->saveAs(Yii::getAlias('@uploads') . '/img/transaction_session/' . $fileName))) {
@@ -157,10 +161,16 @@ class OrderController extends \yii\rest\Controller
                 
                 if ($flag) {
                     
-                    $result['success'] = true;
-                    $result['message'] = 'Upload Resi Berhasil';
-                    
-                    $transaction->commit();
+                    if ($this->updateStatusOrder($post['order_id'], 'Upload Receipt')) {
+                        
+                        $result['success'] = true;
+                        $result['message'] = 'Upload Resi Berhasil';
+                        
+                        $transaction->commit();
+                    } else {
+                        
+                        $transaction->rollBack();
+                    }
                 } else {
                     
                     $result['error'] = $modelTransactionSession->getErrors();
@@ -168,9 +178,6 @@ class OrderController extends \yii\rest\Controller
                     $transaction->rollBack();
                 }
             }
-        } else {
-            
-            $transaction->rollBack();
         }
         
         return $result;
@@ -179,6 +186,7 @@ class OrderController extends \yii\rest\Controller
     public function actionConfirmPrice()
     {
         $post = Yii::$app->request->post();
+        $flag = false;
         
         $modelTransactionSession = TransactionSession::find()
             ->andWhere(['ilike', 'order_id', $post['order_id'] . '_'])
@@ -187,24 +195,69 @@ class OrderController extends \yii\rest\Controller
         $result = [];
         
         $result['success'] = false;
+        $result['message'] = 'Konfirmasi Harga Gagal';
         
         if (!empty($modelTransactionSession)) {
             
-            $modelTransactionSession->total_price = !empty($post['total_price']) ? $post['total_price'] : $modelTransactionSession->total_price;
+            $transaction = Yii::$app->db->beginTransaction();
             
-            if ($modelTransactionSession->save()) {
+            $modelTransactionSession->total_price = !empty($post['total_price']) ? $post['total_price'] : $modelTransactionSession->total_price;
+            $flag = $modelTransactionSession->save();
+            
+            if ($flag) {
                 
-                $result['success'] = true;
-                $result['message'] = 'Konfirmasi Harga Berhasil';
+                if ($this->updateStatusOrder($post['order_id'], 'Confirm Price')) {
+                    
+                    $result['success'] = true;
+                    $result['message'] = 'Konfirmasi Harga Berhasil';
+                    
+                    $transaction->commit();
+                } else {
+                    
+                    $transaction->rollBack();
+                }
             } else {
                 
-                $result['message'] = 'Konfirmasi Harga Gagal';
                 $result['error'] = $modelTransactionSession->getErrors();
+                
+                $transaction->rollBack();
             }
         } else {
             
             $result['message'] = 'Order ID tidak ditemukan';
         }
+        
+        return $result;
+    }
+    
+    public function actionTakeOrder()
+    {
+        $result = [];
+        $result['success'] = $this->updateStatusOrder(Yii::$app->request->post()['order_id'], 'Take Order');
+        
+        return $result;
+    }
+    
+    public function actionCancelOrder()
+    {
+        $result = [];
+        $result['success'] = $this->updateStatusOrder(Yii::$app->request->post()['order_id'], 'Cancel');
+        
+        return $result;
+    }
+    
+    public function actionSendOrder()
+    {
+        $result = [];
+        $result['success'] = $this->updateStatusOrder(Yii::$app->request->post()['order_id'], 'Send Order');
+        
+        return $result;
+    }
+    
+    public function actionFinishOrder()
+    {
+        $result = [];
+        $result['success'] = $this->updateStatusOrder(Yii::$app->request->post()['order_id'], 'Finish');
         
         return $result;
     }
@@ -216,15 +269,50 @@ class OrderController extends \yii\rest\Controller
     
     public function actionUpdateDriverPosition()
     {
+        $post = Yii::$app->request->post();
         
+        $modelUserDriver = UserDriver::find()
+            ->andWhere(['user_id' => $post['driver_id']])
+            ->andWhere(['is_online' => true])
+            ->one();
+        
+        $result = [];
+        
+        $result['success'] = false;
+        $result['message'] = 'ID Driver tidak ditemukan';
+        
+        if (!empty($modelUserDriver)) {
+            
+            $modelUserDriver->coordinate = $post['coordinate'];
+            
+            if ($modelUserDriver->save()) {
+                
+                $result['success'] = true;
+                $result['message'] = 'Update Posisi Berhasil';
+            } else {
+                
+                $result['message'] = 'Update Posisi Gagal';
+            }
+        }
+        
+        return $result;
     }
     
-    private function actionUpdateStatusOrder($orderId, $status)
+    public function actionNewOrder()
+    {
+        $client = new Client(new Version2X('http://localhost:3000'));
+        
+        $client->initialize();
+        $client->emit('broadcast', ['foo' => 'bar']);
+        $client->close();
+    }
+    
+    private function updateStatusOrder($orderId, $status)
     {
         $modelTransactionSession = TransactionSession::find()
             ->andWhere(['ilike', 'order_id', $orderId . '_'])
             ->one();
-            
+        
         $success = false;
         
         if (!empty($modelTransactionSession)) {
