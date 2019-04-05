@@ -10,6 +10,7 @@ use yii\web\UploadedFile;
 use ElephantIO\Client;
 use ElephantIO\Engine\SocketIO\Version2X;
 use core\models\UserDriver;
+use core\models\TransactionCanceled;
 
 class OrderController extends \yii\rest\Controller
 {
@@ -240,8 +241,45 @@ class OrderController extends \yii\rest\Controller
     
     public function actionCancelOrder()
     {
+        $post = Yii::$app->request->post();
+        
+        $flag = false;
+        $transaction = Yii::$app->db->beginTransaction();
+        
+        $modelTransactionCanceled = TransactionCanceled::findOne(['transaction_session_order_id' => $post['order_id']]);
+        
         $result = [];
-        $result['success'] = $this->updateStatusOrder(Yii::$app->request->post()['order_id'], 'Cancel');
+        
+        if (!empty($modelTransactionCanceled)) {
+            
+            $modelTransactionCanceled->driver_username = $post['driver_username'];
+        } else {
+            
+            $newModelTransactionCanceled = new TransactionCanceled();
+            
+            $newModelTransactionCanceled->transaction_session_order_id = $post['order_id'];
+            $newModelTransactionCanceled->driver_username = $post['driver_username'];
+        }
+        
+        $flag = $newModelTransactionCanceled->save();
+        
+        if ($flag) {
+            
+            if ($this->updateStatusOrder(Yii::$app->request->post()['order_id'], 'Cancel')) {
+                
+                $result['success'] = true;
+                
+                $transaction->commit();
+            } else {
+                
+                $result['success'] = false;
+                
+                $transaction->rollback();
+            }
+        } else {
+            
+            $transaction->rollBack();
+        }
         
         return $result;
     }
