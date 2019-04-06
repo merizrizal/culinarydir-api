@@ -91,11 +91,9 @@ class LoadImageController extends \yii\web\Controller {
         Yii::$app->getResponse()->getHeaders()
             ->set('Pragma', 'public')
             ->set('Expires', Yii::$app->formatter->asDatetime((time() + 60 * 60 * 24 * 60), 'EEE, dd MMM yyyy HH:mm:ss O'))
-            ->set('Keep-Alive', 'timeout=30, max=99')
             ->set('Cache-Control', 'must-revalidate, post-check=0, pre-check=0')
             ->set('Content-Transfer-Encoding', 'binary')
-            ->set('Content-Type', 'image/jpeg')
-            ->set('Content-Length', filesize($this->image));
+            ->set('Content-Type', 'image/jpeg');
 
         try {
 
