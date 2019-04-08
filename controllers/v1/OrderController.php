@@ -79,7 +79,7 @@ class OrderController extends \yii\rest\Controller
                         'showDetail' => false
                     ]);
                 
-                $result['order_id'] = substr($dataTransactionSession['order_id'], 0, 6);
+                $result[$i]['order_id'] = substr($dataTransactionSession['order_id'], 0, 6);
                 $result[$i]['note'] = $dataTransactionSession['note'];
                 $result[$i]['total_price'] = $dataTransactionSession['total_price'];
                 $result[$i]['total_amount'] = $dataTransactionSession['total_amount'];
