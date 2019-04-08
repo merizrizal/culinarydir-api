@@ -63,11 +63,13 @@ class OrderController extends \yii\rest\Controller
                 
                 $result[$i] = [];
                 
+                $result[$i]['customer_id'] = $dataTransactionSession['user_ordered'];
                 $result[$i]['customer_name'] = $dataTransactionSession['userOrdered']['full_name'];
                 $result[$i]['customer_username'] = $dataTransactionSession['userOrdered']['username'];
                 $result[$i]['customer_phone'] = $dataTransactionSession['userOrdered']['userPerson']['person']['phone'];
                 $result[$i]['customer_address'] = $dataTransactionSession['userOrdered']['userPerson']['person']['address'];
                 
+                $result[$i]['business_id'] = $dataTransactionSession['business_id'];
                 $result[$i]['business_name'] = $dataTransactionSession['business']['name'];
                 $result[$i]['business_phone'] = $dataTransactionSession['business']['phone3'];
                 $result[$i]['business_location'] = $dataTransactionSession['business']['businessLocation']['coordinate'];
@@ -77,7 +79,7 @@ class OrderController extends \yii\rest\Controller
                         'showDetail' => false
                     ]);
                 
-                $result['order_id'] = substr($modelTransactionSession['order_id'], 0, 6);
+                $result['order_id'] = substr($dataTransactionSession['order_id'], 0, 6);
                 $result[$i]['note'] = $dataTransactionSession['note'];
                 $result[$i]['total_price'] = $dataTransactionSession['total_price'];
                 $result[$i]['total_amount'] = $dataTransactionSession['total_amount'];
