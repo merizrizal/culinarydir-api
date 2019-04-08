@@ -39,7 +39,7 @@ class LoadImageController extends \yii\web\Controller {
 
     public function actionUser($image, $w = null, $h = null)
     {
-        return $this->loadImage('user/', $image, $w, $h);
+        return $this->loadImage('user/', $image, $w, $h, 'default-avatar.png');
     }
 
     public function actionUserPost($image, $w = null, $h = null)
@@ -57,11 +57,11 @@ class LoadImageController extends \yii\web\Controller {
         return $this->loadImage('promo/', $image, $w, $h);
     }
 
-    private function loadImage($directory, $image, $w = null, $h = null)
+    private function loadImage($directory, $image, $w = null, $h = null, $defaultImage = 'image-no-available.jpg')
     {
         if (empty($image)) {
             
-            return $this->loadImage('', 'image-no-available.jpg', $w, $h);
+            return $this->loadImage('', $defaultImage, $w, $h);
         }
         
         try {
@@ -77,18 +77,23 @@ class LoadImageController extends \yii\web\Controller {
             }
         } catch (\Imagine\Exception\InvalidArgumentException $e) {
             
-            if (strpos($e->getMessage(), 'does not exist') !== false) {
-                
-                return $this->loadImage('', 'image-no-available.jpg', $w, $h);
-            }
+            return $this->loadImage('', $defaultImage, $w, $h);
+        } catch (\Imagine\Exception\Exception $e) {
+            
+            return $this->loadImage('', $defaultImage, $w, $h);
+        } catch (\Exception $e) {
+            
+            return $this->loadImage('', $defaultImage, $w, $h);
         }
-
+        
+        Yii::$app->formatter->locale = 'en_US';
+        
         Yii::$app->getResponse()->getHeaders()
             ->set('Pragma', 'public')
-            ->set('Expires', '0')
+            ->set('Expires', Yii::$app->formatter->asDatetime((time() + 60 * 60 * 24 * 60), 'EEE, dd MMM yyyy HH:mm:ss O'))
             ->set('Cache-Control', 'must-revalidate, post-check=0, pre-check=0')
             ->set('Content-Transfer-Encoding', 'binary')
-            ->set('Content-type', 'image/jpeg');
+            ->set('Content-Type', 'image/jpeg');
 
         try {
 
