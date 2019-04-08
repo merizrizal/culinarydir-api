@@ -5,11 +5,8 @@ namespace api\controllers\v1;
 use Yii;
 use frontend\components\AddressType;
 use yii\filters\VerbFilter;
-use core\models\TransactionSession;
 use yii\web\UploadedFile;
-use ElephantIO\Client;
-use ElephantIO\Engine\SocketIO\Version2X;
-use core\models\UserDriver;
+use core\models\TransactionSession;
 use core\models\TransactionCanceled;
 
 class OrderController extends \yii\rest\Controller
@@ -72,15 +69,15 @@ class OrderController extends \yii\rest\Controller
                 $result[$i]['customer_address'] = $dataTransactionSession['userOrdered']['userPerson']['person']['address'];
                 
                 $result[$i]['business_name'] = $dataTransactionSession['business']['name'];
-                $result[$i]['business_phone'] = $dataTransactionSession['business']['phone1'];
-                $result[$i]['business_coordinate'] = $dataTransactionSession['business']['businessLocation']['coordinate'];
+                $result[$i]['business_phone'] = $dataTransactionSession['business']['phone3'];
+                $result[$i]['business_location'] = $dataTransactionSession['business']['businessLocation']['coordinate'];
                 $result[$i]['business_address'] = 
                     AddressType::widget([
                         'businessLocation' => $dataTransactionSession['business']['businessLocation'],
                         'showDetail' => false
-                ]);
+                    ]);
                 
-                $result[$i]['order_id'] = $dataTransactionSession['order_id'];
+                $result['order_id'] = substr($modelTransactionSession['order_id'], 0, 6);
                 $result[$i]['note'] = $dataTransactionSession['note'];
                 $result[$i]['total_price'] = $dataTransactionSession['total_price'];
                 $result[$i]['total_amount'] = $dataTransactionSession['total_amount'];
@@ -303,46 +300,6 @@ class OrderController extends \yii\rest\Controller
     public function actionCalculateDeliveryFee()
     {
         
-    }
-    
-    public function actionUpdateDriverPosition()
-    {
-        $post = Yii::$app->request->post();
-        
-        $modelUserDriver = UserDriver::find()
-            ->andWhere(['user_id' => $post['driver_id']])
-            ->andWhere(['is_online' => true])
-            ->one();
-        
-        $result = [];
-        
-        $result['success'] = false;
-        $result['message'] = 'ID Driver tidak ditemukan';
-        
-        if (!empty($modelUserDriver)) {
-            
-            $modelUserDriver->coordinate = $post['coordinate'];
-            
-            if ($modelUserDriver->save()) {
-                
-                $result['success'] = true;
-                $result['message'] = 'Update Posisi Berhasil';
-            } else {
-                
-                $result['message'] = 'Update Posisi Gagal';
-            }
-        }
-        
-        return $result;
-    }
-    
-    public function actionNewOrder()
-    {
-        $client = new Client(new Version2X('http://localhost:3000'));
-        
-        $client->initialize();
-        $client->emit('broadcast', ['foo' => 'bar']);
-        $client->close();
     }
     
     private function updateStatusOrder($orderId, $status)
