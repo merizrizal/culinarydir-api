@@ -40,19 +40,29 @@ class OrderController extends \yii\rest\Controller
     
     public function actionGetOrderHeader()
     {
-        $post = Yii::$app->request->post();
-        
-        $modelTransactionSession = TransactionSession::find()
-            ->joinWith([
-                'business',
-                'business.businessLocation',
-                'userOrdered',
-                'userOrdered.userPerson.person'
-            ])
-            ->andFilterWhere(['ilike', 'order_id', $post['order_id'] . '_'])
-            ->andFilterWhere(['driver_username' => $post['driver_username']])
-            ->asArray()->all();
-        
+        if (!empty(($post = Yii::$app->request->post()))) {
+            
+            $modelTransactionSession = TransactionSession::find()
+                ->joinWith([
+                    'business',
+                    'business.businessLocation',
+                    'userOrdered',
+                    'userOrdered.userPerson.person'
+                ]);
+                
+            if (!empty($post['order_id'])) {
+                
+                $modelTransactionSession = $modelTransactionSession->andFilterWhere(['ilike', 'order_id', $post['order_id'] . '_']);
+            }
+            
+            if (!empty($post['driver_username'])) {
+                
+                $modelTransactionSession = $modelTransactionSession->andFilterWhere(['driver_username' => $post['driver_username']]);
+            }
+            
+            $modelTransactionSession = $modelTransactionSession->asArray()->all();
+        }
+            
         $result = [];
         
         if (!empty($modelTransactionSession)) {
@@ -98,13 +108,16 @@ class OrderController extends \yii\rest\Controller
     
     public function actionGetOrderDetail()
     {
-        $modelTransactionSession = TransactionSession::find()
-            ->joinWith([
-                'transactionItems',
-                'transactionItems.businessProduct'
-            ])
-            ->andWhere(['ilike', 'order_id', Yii::$app->request->post()['order_id'] . '_'])
-            ->asArray()->one();
+        if (!empty(Yii::$app->request->post()['order_id'])) {
+        
+            $modelTransactionSession = TransactionSession::find()
+                ->joinWith([
+                    'transactionItems',
+                    'transactionItems.businessProduct'
+                ])
+                ->andWhere(['ilike', 'order_id', Yii::$app->request->post()['order_id'] . '_'])
+                ->asArray()->one();
+        }
         
         $result = [];
         
@@ -134,12 +147,14 @@ class OrderController extends \yii\rest\Controller
     
     public function actionUploadReceipt()
     {
-        $post = Yii::$app->request->post();
         $flag = false;
         
-        $modelTransactionSession = TransactionSession::find()
-            ->andWhere(['ilike', 'order_id', $post['order_id'] . '_'])
-            ->one();
+        if (!empty(($post = Yii::$app->request->post()))) {
+            
+            $modelTransactionSession = TransactionSession::find()
+                ->andWhere(['ilike', 'order_id', $post['order_id'] . '_'])
+                ->one();
+        }
             
         $file = UploadedFile::getInstanceByName('image');
         
@@ -161,7 +176,7 @@ class OrderController extends \yii\rest\Controller
                 
                 if ($flag) {
                     
-                    if ($this->updateStatusOrder($post['order_id'], 'Upload Receipt')) {
+                    if ($this->updateStatusOrder($modelTransactionSession, 'Upload Receipt')) {
                         
                         $result['success'] = true;
                         $result['message'] = 'Upload Resi Berhasil';
@@ -185,46 +200,50 @@ class OrderController extends \yii\rest\Controller
     
     public function actionConfirmPrice()
     {
-        $post = Yii::$app->request->post();
         $flag = false;
-        
-        $modelTransactionSession = TransactionSession::find()
-            ->andWhere(['ilike', 'order_id', $post['order_id'] . '_'])
-            ->one();
         
         $result = [];
         
         $result['success'] = false;
-        $result['message'] = 'Konfirmasi Harga Gagal';
+        $result['message'] = 'Order ID tidak ditemukan';
         
-        if (!empty($modelTransactionSession)) {
+        if (!empty(($post = Yii::$app->request->post()))) {
             
-            $transaction = Yii::$app->db->beginTransaction();
+            if (!empty($post['order_id'])) {
             
-            $modelTransactionSession->total_price = !empty($post['total_price']) ? $post['total_price'] : $modelTransactionSession->total_price;
-            $flag = $modelTransactionSession->save();
-            
-            if ($flag) {
+                $modelTransactionSession = TransactionSession::find()
+                    ->andWhere(['ilike', 'order_id', $post['order_id'] . '_'])
+                    ->one();
                 
-                if ($this->updateStatusOrder($post['order_id'], 'Confirm Price')) {
+                if (!empty($modelTransactionSession)) {
                     
-                    $result['success'] = true;
-                    $result['message'] = 'Konfirmasi Harga Berhasil';
+                    $transaction = Yii::$app->db->beginTransaction();
                     
-                    $transaction->commit();
-                } else {
+                    $modelTransactionSession->total_price = !empty($post['total_price']) ? $post['total_price'] : $modelTransactionSession->total_price;
+                    $flag = $modelTransactionSession->save();
                     
-                    $transaction->rollBack();
+                    $result['message'] = 'Konfirmasi Harga Gagal';
+                    
+                    if ($flag) {
+                        
+                        if ($this->updateStatusOrder($modelTransactionSession, 'Confirm Price')) {
+                            
+                            $result['success'] = true;
+                            $result['message'] = 'Konfirmasi Harga Berhasil';
+                            
+                            $transaction->commit();
+                        } else {
+                            
+                            $transaction->rollBack();
+                        }
+                    } else {
+                        
+                        $result['error'] = $modelTransactionSession->getErrors();
+                        
+                        $transaction->rollBack();
+                    }
                 }
-            } else {
-                
-                $result['error'] = $modelTransactionSession->getErrors();
-                
-                $transaction->rollBack();
             }
-        } else {
-            
-            $result['message'] = 'Order ID tidak ditemukan';
         }
         
         return $result;
@@ -232,52 +251,121 @@ class OrderController extends \yii\rest\Controller
     
     public function actionTakeOrder()
     {
+        $flag = false;
+        
         $result = [];
-        $result['success'] = $this->updateStatusOrder(Yii::$app->request->post()['order_id'], 'Take Order');
+        
+        $result['success'] = false;
+        $result['message'] = 'Order ID dan username driver tidak ditemukan';
+        
+        if (!empty(($post = Yii::$app->request->post()))) {
+            
+            $result['message'] = 'Order ID tidak ditemukan';
+            
+            if (!empty($post['order_id'])) {
+                
+                $modelTransactionSession = TransactionSession::find()
+                    ->andWhere(['ilike', 'order_id', $post['order_id'] . '_'])
+                    ->one();
+                
+                if (!empty($modelTransactionSession)) {
+                    
+                    $transaction = Yii::$app->db->beginTransaction();
+                    
+                    if (!empty($post['driver_username'])) {
+                        
+                        $modelTransactionSession->driver_username = $post['driver_username'];
+                        $flag = $modelTransactionSession->save();
+                        
+                        if ($flag) {
+                            
+                            if ($this->updateStatusOrder($modelTransactionSession, 'Take Order')) {
+                                
+                                $result['success'] = true;
+                                $result['message'] = 'Ambil Pesanan Berhasil';
+                                
+                                $transaction->commit();
+                            } else {
+                                
+                                $transaction->rollBack();
+                            }
+                        } else {
+                            
+                            $result['message'] = 'Ambil Pesanan Gagal';
+                            $result['error'] = $modelTransactionSession->getErrors();
+                            
+                            $transaction->rollBack();
+                        }
+                    } else {
+                        
+                        $result['message'] = 'Username driver kosong';
+                    }
+                }
+            }
+        }
         
         return $result;
     }
     
     public function actionCancelOrder()
     {
-        $post = Yii::$app->request->post();
-        
         $flag = false;
-        $transaction = Yii::$app->db->beginTransaction();
-        
-        $modelTransactionCanceled = TransactionCanceled::findOne(['transaction_session_order_id' => $post['order_id']]);
         
         $result = [];
+        $result['success'] = false;
+        $result['message'] = 'Order ID dan driver username tidak ditemukan';
         
-        if (!empty($modelTransactionCanceled)) {
+        if (!empty(($post = Yii::$app->request->post()))) {
             
-            $modelTransactionCanceled->driver_username = $post['driver_username'];
-        } else {
+            $transaction = Yii::$app->db->beginTransaction();
             
-            $newModelTransactionCanceled = new TransactionCanceled();
-            
-            $newModelTransactionCanceled->transaction_session_order_id = $post['order_id'];
-            $newModelTransactionCanceled->driver_username = $post['driver_username'];
-        }
-        
-        $flag = $newModelTransactionCanceled->save();
-        
-        if ($flag) {
-            
-            if ($this->updateStatusOrder(Yii::$app->request->post()['order_id'], 'Cancel')) {
+            if (!empty($post['order_id']) && !empty($post['driver_username'])) {
                 
-                $result['success'] = true;
+                $modelTransactionSession = TransactionSession::find()
+                    ->joinWith(['transactionCanceled'])
+                    ->andWhere(['ilike', 'transaction_session.order_id', $post['order_id'] . '_'])
+                    ->one();
                 
-                $transaction->commit();
-            } else {
-                
-                $result['success'] = false;
-                
-                $transaction->rollback();
+                $result['message'] = 'Order ID tidak ditemukan';
+                    
+                if (!empty($modelTransactionSession)) {
+                    
+                    if (!empty($modelTransactionSession->transactionCanceled)) {
+                        
+                        $modelTransactionCanceled = $modelTransactionSession->transactionCanceled;
+                        $modelTransactionCanceled->driver_username = $post['driver_username'];
+                    } else {
+                        
+                        $modelTransactionCanceled = new TransactionCanceled();
+                        
+                        $modelTransactionCanceled->transaction_session_order_id = $modelTransactionSession->order_id;
+                        $modelTransactionCanceled->driver_username = $post['driver_username'];
+                    }
+                    
+                    $flag = $modelTransactionCanceled->save();
+                    
+                    $result['message'] = 'Cancel Order Gagal';
+                    
+                    if ($flag) {
+                        
+                        if ($this->updateStatusOrder($post['order_id'], 'Cancel')) {
+                            
+                            $result['success'] = true;
+                            $result['message'] = 'Cancel Order Berhasil';
+                            
+                            $transaction->commit();
+                        } else {
+                            
+                            $transaction->rollback();
+                        }
+                    } else {
+                        
+                        $result['error'] = $modelTransactionCanceled->getErrors();
+                        
+                        $transaction->rollBack();
+                    }
+                }
             }
-        } else {
-            
-            $transaction->rollBack();
         }
         
         return $result;
@@ -306,19 +394,28 @@ class OrderController extends \yii\rest\Controller
     
     private function updateStatusOrder($orderId, $status)
     {
-        $modelTransactionSession = TransactionSession::find()
-            ->andWhere(['ilike', 'order_id', $orderId . '_'])
-            ->one();
-        
         $success = false;
         
-        if (!empty($modelTransactionSession)) {
+        if (!empty($orderId)) {
+        
+            if (is_string($orderId)) {
             
-            $modelTransactionSession->order_status = $status;
-            
-            if ($modelTransactionSession->save()) {
+                $modelTransactionSession = TransactionSession::find()
+                    ->andWhere(['ilike', 'order_id', $orderId . '_'])
+                    ->one();
+            } else {
                 
-                $success = true;
+                $modelTransactionSession = $orderId;
+            }
+            
+            if (!empty($modelTransactionSession)) {
+                
+                $modelTransactionSession->order_status = $status;
+                
+                if ($modelTransactionSession->save()) {
+                    
+                    $success = true;
+                }
             }
         }
         
