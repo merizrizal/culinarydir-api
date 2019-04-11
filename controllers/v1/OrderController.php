@@ -55,9 +55,9 @@ class OrderController extends \yii\rest\Controller
                 $modelTransactionSession = $modelTransactionSession->andFilterWhere(['ilike', 'order_id', $post['order_id'] . '_']);
             }
             
-            if (!empty($post['driver_username'])) {
+            if (!empty($post['driver_user_id'])) {
                 
-                $modelTransactionSession = $modelTransactionSession->andFilterWhere(['driver_username' => $post['driver_username']]);
+                $modelTransactionSession = $modelTransactionSession->andFilterWhere(['driver_user_id' => $post['driver_user_id']]);
             }
             
             $modelTransactionSession = $modelTransactionSession->asArray()->all();
@@ -275,9 +275,9 @@ class OrderController extends \yii\rest\Controller
                     
                     $transaction = Yii::$app->db->beginTransaction();
                     
-                    if (!empty($post['driver_username'])) {
+                    if (!empty($post['driver_user_id'])) {
                         
-                        $modelTransactionSession->driver_username = $post['driver_username'];
+                        $modelTransactionSession->driver_user_id = $post['driver_user_id'];
                         $flag = $modelTransactionSession->save();
                         
                         $result['message'] = 'Ambil Pesanan Gagal';
@@ -323,7 +323,7 @@ class OrderController extends \yii\rest\Controller
             
             $transaction = Yii::$app->db->beginTransaction();
             
-            if (!empty($post['order_id']) && !empty($post['driver_username'])) {
+            if (!empty($post['order_id']) && !empty($post['driver_user_id'])) {
                 
                 $modelTransactionSession = TransactionSession::find()
                     ->joinWith(['transactionCanceled'])
@@ -337,13 +337,13 @@ class OrderController extends \yii\rest\Controller
                     if (!empty($modelTransactionSession->transactionCanceled)) {
                         
                         $modelTransactionCanceled = $modelTransactionSession->transactionCanceled;
-                        $modelTransactionCanceled->driver_username = $post['driver_username'];
+                        $modelTransactionCanceled->driver_user_id = $post['driver_user_id'];
                     } else {
                         
                         $modelTransactionCanceled = new TransactionCanceled();
                         
                         $modelTransactionCanceled->transaction_session_order_id = $modelTransactionSession->order_id;
-                        $modelTransactionCanceled->driver_username = $post['driver_username'];
+                        $modelTransactionCanceled->driver_user_id = $post['driver_user_id'];
                     }
                     
                     $flag = $modelTransactionCanceled->save();
@@ -397,11 +397,11 @@ class OrderController extends \yii\rest\Controller
         
         $result['success'] = false;
         
-        if (!empty(Yii::$app->request->post()['driver_username'])) {
+        if (!empty(Yii::$app->request->post()['driver_user_id'])) {
             
             $modelUser = User::find()
                 ->joinWith(['userPerson.person'])
-                ->andWhere(['username' => Yii::$app->request->post()['driver_username']])
+                ->andWhere(['user.id' => Yii::$app->request->post()['driver_user_id']])
                 ->asArray()->one();
             
             if (!empty($modelUser)) {
