@@ -31,8 +31,7 @@ class OrderController extends \yii\rest\Controller
                         'cancel-order' => ['POST'],
                         'send-order' => ['POST'],
                         'finish-order' => ['POST'],
-                        'calculate-delivery-fee' => ['POST'],
-                        'update-driver-position' => ['POST']
+                        'calculate-delivery-fee' => ['POST']
                     ],
                 ],
             ]);
@@ -77,6 +76,7 @@ class OrderController extends \yii\rest\Controller
                 $result[$i]['customer_name'] = $dataTransactionSession['userOrdered']['full_name'];
                 $result[$i]['customer_username'] = $dataTransactionSession['userOrdered']['username'];
                 $result[$i]['customer_phone'] = $dataTransactionSession['userOrdered']['userPerson']['person']['phone'];
+                $result[$i]['customer_location'] = $dataTransactionSession['business']['businessLocation']['coordinate'];
                 $result[$i]['customer_address'] = $dataTransactionSession['userOrdered']['userPerson']['person']['address'];
                 
                 $result[$i]['business_id'] = $dataTransactionSession['business_id'];
@@ -149,48 +149,50 @@ class OrderController extends \yii\rest\Controller
     {
         $flag = false;
         
+        $result = [];
+        
+        $result['success'] = false;
+        $result['message'] = 'Order ID tidak ada';
+        
         if (!empty(($post = Yii::$app->request->post()))) {
             
             $modelTransactionSession = TransactionSession::find()
                 ->andWhere(['ilike', 'order_id', $post['order_id'] . '_'])
                 ->one();
-        }
             
-        $file = UploadedFile::getInstanceByName('image');
-        
-        $result = [];
-        
-        $result['success'] = false;
-        $result['message'] = 'Gagal Upload Resi';
-        
-        if (!empty($modelTransactionSession) && $file) {
+            $file = UploadedFile::getInstanceByName('image');
             
-            $transaction = Yii::$app->db->beginTransaction();
+            $result['message'] = 'Gagal Upload Resi';
             
-            $fileName = 'AD-' . $post['order_id'] . '.' . $file->extension;
-            
-            if (($flag = $file->saveAs(Yii::getAlias('@uploads') . '/img/transaction_session/' . $fileName))) {
+            if (!empty($modelTransactionSession) && $file) {
                 
-                $modelTransactionSession->image = $fileName;
-                $flag = $modelTransactionSession->save();
+                $transaction = Yii::$app->db->beginTransaction();
                 
-                if ($flag) {
+                $fileName = 'AD-' . $post['order_id'] . '.' . $file->extension;
+                
+                if (($flag = $file->saveAs(Yii::getAlias('@uploads') . '/img/transaction_session/' . $fileName))) {
                     
-                    if ($this->updateStatusOrder($modelTransactionSession, 'Upload Receipt')) {
+                    $modelTransactionSession->image = $fileName;
+                    $flag = $modelTransactionSession->save();
+                    
+                    if ($flag) {
                         
-                        $result['success'] = true;
-                        $result['message'] = 'Upload Resi Berhasil';
-                        
-                        $transaction->commit();
+                        if ($this->updateStatusOrder($modelTransactionSession, 'Upload Receipt')) {
+                            
+                            $result['success'] = true;
+                            $result['message'] = 'Upload Resi Berhasil';
+                            
+                            $transaction->commit();
+                        } else {
+                            
+                            $transaction->rollBack();
+                        }
                     } else {
+                        
+                        $result['error'] = $modelTransactionSession->getErrors();
                         
                         $transaction->rollBack();
                     }
-                } else {
-                    
-                    $result['error'] = $modelTransactionSession->getErrors();
-                    
-                    $transaction->rollBack();
                 }
             }
         }
@@ -277,6 +279,8 @@ class OrderController extends \yii\rest\Controller
                         $modelTransactionSession->driver_username = $post['driver_username'];
                         $flag = $modelTransactionSession->save();
                         
+                        $result['message'] = 'Ambil Pesanan Gagal';
+                        
                         if ($flag) {
                             
                             if ($this->updateStatusOrder($modelTransactionSession, 'Take Order')) {
@@ -291,7 +295,6 @@ class OrderController extends \yii\rest\Controller
                             }
                         } else {
                             
-                            $result['message'] = 'Ambil Pesanan Gagal';
                             $result['error'] = $modelTransactionSession->getErrors();
                             
                             $transaction->rollBack();
