@@ -8,6 +8,7 @@ use yii\filters\VerbFilter;
 use yii\web\UploadedFile;
 use core\models\TransactionSession;
 use core\models\TransactionCanceled;
+use core\models\User;
 
 class OrderController extends \yii\rest\Controller
 {
@@ -386,6 +387,38 @@ class OrderController extends \yii\rest\Controller
     {
         $result = [];
         $result['success'] = $this->updateStatusOrder(Yii::$app->request->post()['order_id'], 'Finish');
+        
+        return $result;
+    }
+    
+    public function actionGetDriverProfile()
+    {
+        $result = [];
+        
+        $result['success'] = false;
+        
+        if (!empty(Yii::$app->request->post()['driver_username'])) {
+            
+            $modelUser = User::find()
+                ->joinWith(['userPerson.person'])
+                ->andWhere(['username' => Yii::$app->request->post()['driver_username']])
+                ->asArray()->one();
+            
+            if (!empty($modelUser)) {
+                
+                $result['success'] = true;
+                $result['full_name'] = $modelUser['full_name'];
+                $result['email'] = $modelUser['email'];
+                $result['image'] = $modelUser['image'];
+                $result['phone'] = $modelUser['userPerson']['person']['phone'];
+            } else {
+                
+                $result['message'] = 'Driver tidak ditemukan';
+            }
+        } else {
+            
+            $result['message'] = 'Username driver kosong.';
+        }
         
         return $result;
     }
