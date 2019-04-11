@@ -34,7 +34,7 @@ class SearchResultController extends \yii\rest\Controller {
         
             $modelBusiness = Business::find()
                 ->select([
-                    'business.id', 'business.name', 'business.unique_name', 'business.is_active', 'business.membership_type_id', 'business_image.image',
+                    'business.id', 'business.name', 'business.unique_name', 'business.is_active', 'business.membership_type_id',
                     'business_detail.business_id', 'business_detail.price_min', 'business_detail.price_max',
                     'business_detail.voters', 'business_detail.vote_value', 'business_detail.vote_points', 'business_detail.love_value',
                     'business_location.address_type', 'business_location.address',
@@ -143,7 +143,7 @@ class SearchResultController extends \yii\rest\Controller {
                     '("business_detail"."price_max" >= ' . Yii::$app->request->get('price_min') . ' AND "business_detail"."price_max" <= ' . Yii::$app->request->get('price_max') . ')',
                 ]);
             }
-                
+            
             $modelBusiness = $modelBusiness->orderBy(['business.id' => SORT_DESC])
                 ->distinct()
                 ->asArray();
