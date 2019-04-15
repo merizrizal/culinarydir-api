@@ -32,7 +32,8 @@ class IdentityController extends \yii\rest\Controller {
                         'register' => ['POST'],
                         'request-reset-password-token' => ['POST'],
                         'token-verification' => ['POST'],
-                        'reset-password' => ['POST']
+                        'reset-password' => ['POST'],
+                        'get-driver-profile' => ['POST']
                     ],
                 ],
             ]);
@@ -399,6 +400,39 @@ class IdentityController extends \yii\rest\Controller {
             
             $result['success'] = false;
             $result['error'] = $model->getErrors();
+        }
+        
+        return $result;
+    }
+    
+    public function actionGetDriverProfile()
+    {
+        $result = [];
+        
+        $result['success'] = false;
+        
+        if (!empty(Yii::$app->request->post()['driver_user_id'])) {
+            
+            $modelUser = User::find()
+                ->joinWith(['userPerson.person'])
+                ->andWhere(['user.id' => Yii::$app->request->post()['driver_user_id']])
+                ->asArray()->one();
+            
+            if (!empty($modelUser)) {
+                
+                $result['success'] = true;
+                $result['full_name'] = $modelUser['full_name'];
+                $result['email'] = $modelUser['email'];
+                $result['image'] = $modelUser['image'];
+                $result['phone'] = $modelUser['userPerson']['person']['phone'];
+                $result['about_me'] = $modelUser['userPerson']['person']['about_me'];
+            } else {
+                
+                $result['message'] = 'Driver tidak ditemukan';
+            }
+        } else {
+            
+            $result['message'] = 'Username driver kosong.';
         }
         
         return $result;
