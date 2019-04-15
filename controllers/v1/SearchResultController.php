@@ -7,7 +7,14 @@ use Yii;
 use yii\data\ActiveDataProvider;
 use yii\filters\VerbFilter;
 
-class SearchResultController extends \yii\rest\Controller {
+class SearchResultController extends \yii\rest\Controller 
+{
+    public $serializer = [
+        'class' => 'yii\rest\Serializer',
+        'collectionEnvelope' => 'items',
+        'linksEnvelope' => 'links',
+        'metaEnvelope' => 'meta',
+    ];
     
     /**
      * @inheritdoc
