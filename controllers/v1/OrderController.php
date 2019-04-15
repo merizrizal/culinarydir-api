@@ -192,7 +192,7 @@ class OrderController extends \yii\rest\Controller
         $result = [];
         
         $result['success'] = false;
-        $result['message'] = 'Order ID dan username driver tidak ditemukan';
+        $result['message'] = 'Order ID dan ID driver tidak ditemukan';
         
         if (!empty(($post = Yii::$app->request->post()))) {
             
@@ -238,7 +238,7 @@ class OrderController extends \yii\rest\Controller
                         }
                     } else {
                         
-                        $result['message'] = 'Username driver kosong';
+                        $result['message'] = 'ID driver kosong';
                     }
                 }
             }
@@ -253,7 +253,7 @@ class OrderController extends \yii\rest\Controller
         
         $result = [];
         $result['success'] = false;
-        $result['message'] = 'Order ID dan driver username tidak ditemukan';
+        $result['message'] = 'Order ID dan ID driver tidak ditemukan';
         
         if (!empty(($post = Yii::$app->request->post()))) {
             
