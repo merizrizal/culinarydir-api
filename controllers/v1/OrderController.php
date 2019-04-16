@@ -72,11 +72,11 @@ class OrderController extends \yii\rest\Controller
                 $result['total_amount'] = $modelTransactionSession['total_amount'];
             } else {
                 
-                $result['message'] = 'Parameter order_id tidak boleh kosong';
+                $result['message'] = 'Order Detail tidak ditemukan';
             }
         } else {
             
-            $result['message'] = 'Order Detail tidak ditemukan';
+            $result['message'] = 'Parameter order_id tidak boleh kosong';
         }
             
         return $result;
@@ -88,53 +88,64 @@ class OrderController extends \yii\rest\Controller
         
         $result = [];
         
-        $result['success'] = false;
-        $result['message'] = 'Order ID tidak ada';
+        $transaction = Yii::$app->db->beginTransaction();
         
-        if (!empty(($post = Yii::$app->request->post()))) {
+        if (!empty(($post = Yii::$app->request->post())) && !empty($post['order_id'])) {
             
             $modelTransactionSession = TransactionSession::find()
                 ->joinWith(['transactionSessionDelivery'])
                 ->andWhere(['ilike', 'order_id', $post['order_id'] . '_'])
                 ->one();
             
-            $file = UploadedFile::getInstanceByName('image');
-            
-            $result['message'] = 'Gagal Upload Resi';
-            
-            if (!empty($modelTransactionSession->transactionSessionDelivery) && $file) {
+            if (!empty($modelTransactionSession->transactionSessionDelivery)) {
                 
-                $transaction = Yii::$app->db->beginTransaction();
-                
-                $fileName = 'AD-' . $post['order_id'] . '.' . $file->extension;
-                
-                if (($flag = $file->saveAs(Yii::getAlias('@uploads') . '/img/transaction_session/' . $fileName))) {
+                if (($file = UploadedFile::getInstanceByName('image'))) {
                     
-                    $modelTransactionSessionDelivery = $modelTransactionSession->transactionSessionDelivery;
-                    $modelTransactionSessionDelivery->image = $fileName;
+                    $fileName = 'AD-' . $post['order_id'] . '.' . $file->extension;
                     
-                    $flag = $modelTransactionSessionDelivery->save();
-                    
-                    if ($flag) {
+                    if (($flag = $file->saveAs(Yii::getAlias('@uploads') . '/img/transaction_session/' . $fileName))) {
                         
-                        if ($this->updateStatusOrder($modelTransactionSession, 'Upload-Receipt')) {
+                        $modelTransactionSessionDelivery = $modelTransactionSession->transactionSessionDelivery;
+                        $modelTransactionSessionDelivery->image = $fileName;
+                        
+                        if (($flag = $modelTransactionSessionDelivery->save())) {
                             
-                            $result['success'] = true;
-                            $result['message'] = 'Upload Resi Berhasil';
-                            
-                            $transaction->commit();
+                            if (!($flag = $this->updateStatusOrder($modelTransactionSession, 'Upload-Receipt'))) {
+                                
+                                $result['message'] = 'Gagal Update Status Order';
+                            }
                         } else {
                             
-                            $transaction->rollBack();
+                            $result['error'] = $modelTransactionSessionDelivery->getErrors();
                         }
                     } else {
                         
-                        $result['error'] = $modelTransactionSession->getErrors();
-                        
-                        $transaction->rollBack();
+                        $result['message'] = 'Gagal Save Image';
                     }
+                } else {
+                    
+                    $result['message'] = 'Gagal Upload Resi';
                 }
+            } else {
+                
+                $result['message'] = 'Order ID tidak ditemukan';
             }
+        } else {
+            
+            $result['message'] = 'Order ID kosong';
+        }
+        
+        if ($flag) {
+            
+            $result['success'] = true;
+            $result['message'] = 'Upload Resi Berhasil';
+            
+            $transaction->commit();
+        } else {
+            
+            $result['success'] = false;
+            
+            $transaction->rollBack();
         }
         
         return $result;
@@ -146,8 +157,7 @@ class OrderController extends \yii\rest\Controller
         
         $result = [];
         
-        $result['success'] = false;
-        $result['message'] = 'Order ID tidak ditemukan';
+        $transaction = Yii::$app->db->beginTransaction();
         
         if (!empty(($post = Yii::$app->request->post()))) {
             
@@ -159,33 +169,49 @@ class OrderController extends \yii\rest\Controller
                 
                 if (!empty($modelTransactionSession)) {
                     
-                    $transaction = Yii::$app->db->beginTransaction();
+                    if (!empty($post['total_price'])) {
                     
-                    $modelTransactionSession->total_price = !empty($post['total_price']) ? $post['total_price'] : $modelTransactionSession->total_price;
-                    $flag = $modelTransactionSession->save();
-                    
-                    $result['message'] = 'Konfirmasi Harga Gagal';
-                    
-                    if ($flag) {
-                        
-                        if ($this->updateStatusOrder($modelTransactionSession, 'Confirm-Price')) {
+                        $modelTransactionSession->total_price = $post['total_price'];
+    
+                        if (($flag = $modelTransactionSession->save())) {
                             
-                            $result['success'] = true;
-                            $result['message'] = 'Konfirmasi Harga Berhasil';
-                            
-                            $transaction->commit();
+                            if (!($flag = $this->updateStatusOrder($modelTransactionSession, 'Confirm-Price'))) {
+                                
+                                $result['message'] = 'Gagal Update Status Order';
+                            }
                         } else {
                             
-                            $transaction->rollBack();
+                            $result['message'] = 'Konfirmasi Harga Gagal';
+                            $result['error'] = $modelTransactionSession->getErrors();
                         }
                     } else {
                         
-                        $result['error'] = $modelTransactionSession->getErrors();
-                        
-                        $transaction->rollBack();
+                        $result['message'] = 'Total price kosong';
                     }
+                } else {
+                    
+                    $result['message'] = 'Order ID tidak ditemukan';
                 }
+            } else {
+                
+                $result['message'] = 'Order ID kosong';
             }
+        } else {
+            
+            $result['message'] = 'Parameter yang dibutuhkan tidak ada';
+        }
+        
+        if ($flag) {
+            
+            $result['success'] = true;
+            $result['message'] = 'Konfirmasi Harga Berhasil';
+            
+            $transaction->commit();
+        } else {
+            
+            $result['success'] = false;
+            
+            $transaction->rollBack();
         }
         
         return $result;
@@ -197,12 +223,9 @@ class OrderController extends \yii\rest\Controller
         
         $result = [];
         
-        $result['success'] = false;
-        $result['message'] = 'Order ID dan ID driver tidak ditemukan';
+        $transaction = Yii::$app->db->beginTransaction();
         
         if (!empty(($post = Yii::$app->request->post()))) {
-            
-            $result['message'] = 'Order ID tidak ditemukan';
             
             if (!empty($post['order_id'])) {
                 
@@ -211,8 +234,6 @@ class OrderController extends \yii\rest\Controller
                     ->one();
                 
                 if (!empty($modelTransactionSession)) {
-                    
-                    $transaction = Yii::$app->db->beginTransaction();
                     
                     if (!empty($post['driver_user_id'])) {
                         
@@ -224,34 +245,45 @@ class OrderController extends \yii\rest\Controller
                         $modelTransactionSessionDelivery->total_distance = $faker->randomNumber(2);
                         $modelTransactionSessionDelivery->total_delivery_fee = $faker->randomNumber(6);
                         
-                        $flag = $modelTransactionSessionDelivery->save();
-                        
-                        $result['message'] = 'Ambil Pesanan Gagal';
-                        
-                        if ($flag) {
+                        if (($flag = $modelTransactionSessionDelivery->save())) {
                             
-                            if ($this->updateStatusOrder($modelTransactionSession, 'Take-Order')) {
+                            if (!($flag = $this->updateStatusOrder($modelTransactionSession, 'Take-Order'))) {
                                 
-                                $result['success'] = true;
-                                $result['message'] = 'Ambil Pesanan Berhasil';
-                                
-                                $transaction->commit();
-                            } else {
-                                
-                                $transaction->rollBack();
+                                $result['message'] = 'Gagal Update Status Order';
                             }
                         } else {
                             
+                            $result['message'] = 'Ambil Pesanan Gagal';
                             $result['error'] = $modelTransactionSessionDelivery->getErrors();
-                            
-                            $transaction->rollBack();
                         }
                     } else {
                         
                         $result['message'] = 'ID driver kosong';
                     }
+                } else {
+                    
+                    $result['message'] = 'Order ID tidak ditemukan';
                 }
+            } else {
+                
+                $result['message'] = 'Order ID kosong';
             }
+        } else {
+            
+            $result['message'] = 'Parameter yang dibutuhkan tidak ada';
+        }
+        
+        if ($flag) {
+            
+            $result['success'] = true;
+            $result['message'] = 'Ambil Pesanan Berhasil';
+            
+            $transaction->commit();
+        } else {
+            
+            $result['success'] = false;
+            
+            $transaction->rollBack();
         }
         
         return $result;
@@ -262,53 +294,66 @@ class OrderController extends \yii\rest\Controller
         $flag = false;
         
         $result = [];
-        $result['success'] = false;
-        $result['message'] = 'Order ID dan ID driver tidak ditemukan';
+        
+        $transaction = Yii::$app->db->beginTransaction();
         
         if (!empty(($post = Yii::$app->request->post()))) {
             
-            $transaction = Yii::$app->db->beginTransaction();
-            
-            if (!empty($post['order_id']) && !empty($post['driver_user_id'])) {
+            if (!empty($post['order_id'])) {
                 
                 $modelTransactionSession = TransactionSession::find()
                     ->andWhere(['ilike', 'order_id', $post['order_id'] . '_'])
                     ->one();
                 
-                $result['message'] = 'Order ID tidak ditemukan';
-                    
                 if (!empty($modelTransactionSession)) {
+                    
+                    if (!empty($post['driver_user_id'])) {
+                    
+                        $modelTransactionCanceledByDriver = new TransactionCanceledByDriver();
                         
-                    $modelTransactionCanceledByDriver = new TransactionCanceledByDriver();
-                    
-                    $modelTransactionCanceledByDriver->transaction_session_id = $modelTransactionSession->id;
-                    $modelTransactionCanceledByDriver->order_id = $modelTransactionSession->order_id;
-                    $modelTransactionCanceledByDriver->driver_id = $post['driver_user_id'];
-                    
-                    $flag = $modelTransactionCanceledByDriver->save();
-                    
-                    $result['message'] = 'Cancel Order Gagal';
-                    
-                    if ($flag) {
+                        $modelTransactionCanceledByDriver->transaction_session_id = $modelTransactionSession->id;
+                        $modelTransactionCanceledByDriver->order_id = $modelTransactionSession->order_id;
+                        $modelTransactionCanceledByDriver->driver_id = $post['driver_user_id'];
                         
-                        if ($this->updateStatusOrder($modelTransactionSession, 'Cancel')) {
+                        if (($flag = $modelTransactionCanceledByDriver->save())) {
                             
-                            $result['success'] = true;
-                            $result['message'] = 'Cancel Order Berhasil';
-                            
-                            $transaction->commit();
+                            if (!($flag = $this->updateStatusOrder($modelTransactionSession, 'Cancel'))) {
+                                
+                                $result['message'] = 'Gagal Update Status Order';
+                            }
                         } else {
                             
-                            $transaction->rollback();
+                            $result['message'] = 'Cancel Order Gagal';
+                            $result['error'] = $modelTransactionCanceledByDriver->getErrors();
                         }
                     } else {
                         
-                        $result['error'] = $modelTransactionCanceledByDriver->getErrors();
-                        
-                        $transaction->rollBack();
+                        $result['message'] = 'ID Driver kosong';
                     }
+                } else {
+                    
+                    $result['message'] = 'Order ID tidak ditemukan';
                 }
+            } else {
+                
+                $result['message'] = 'Order ID kosong';
             }
+        } else {
+            
+            $result['message'] = 'Parameter yang dibutuhkan tidak ada';
+        }
+        
+        if ($flag) {
+            
+            $result['success'] = true;
+            $result['message'] = 'Cancel Order Berhasil';
+            
+            $transaction->commit();
+        } else {
+            
+            $result['success'] = false;
+            
+            $transaction->rollBack();
         }
         
         return $result;
@@ -317,7 +362,13 @@ class OrderController extends \yii\rest\Controller
     public function actionSendOrder()
     {
         $result = [];
-        $result['success'] = $this->updateStatusOrder(Yii::$app->request->post()['order_id'], 'Send Order');
+        
+        $result['success'] = false;
+        
+        if (!empty(Yii::$app->request->post()['order_id'])) {
+        
+            $result['success'] = $this->updateStatusOrder(Yii::$app->request->post()['order_id'], 'Send-Order');
+        }
         
         return $result;
     }
@@ -325,7 +376,13 @@ class OrderController extends \yii\rest\Controller
     public function actionFinishOrder()
     {
         $result = [];
-        $result['success'] = $this->updateStatusOrder(Yii::$app->request->post()['order_id'], 'Finish');
+        
+        $result['success'] = false;
+        
+        if (!empty(Yii::$app->request->post()['order_id'])) {
+            
+            $result['success'] = $this->updateStatusOrder(Yii::$app->request->post()['order_id'], 'Finish');
+        }
         
         return $result;
     }
