@@ -76,7 +76,7 @@ class OrderController extends \yii\rest\Controller
             }
         } else {
             
-            $result['message'] = 'Parameter order_id tidak boleh kosong';
+            $result['message'] = 'Order ID tidak boleh kosong';
         }
             
         return $result;
@@ -132,7 +132,7 @@ class OrderController extends \yii\rest\Controller
             }
         } else {
             
-            $result['message'] = 'Order ID kosong';
+            $result['message'] = 'Order ID tidak boleh kosong';
         }
         
         if ($flag) {
@@ -186,7 +186,7 @@ class OrderController extends \yii\rest\Controller
                         }
                     } else {
                         
-                        $result['message'] = 'Total price kosong';
+                        $result['message'] = 'Total price tidak boleh kosong';
                     }
                 } else {
                     
@@ -194,11 +194,11 @@ class OrderController extends \yii\rest\Controller
                 }
             } else {
                 
-                $result['message'] = 'Order ID kosong';
+                $result['message'] = 'Order ID tidak boleh kosong';
             }
         } else {
             
-            $result['message'] = 'Parameter yang dibutuhkan tidak ada';
+            $result['message'] = 'Parameter yang dibutuhkan tidak boleh kosong';
         }
         
         if ($flag) {
@@ -258,7 +258,7 @@ class OrderController extends \yii\rest\Controller
                         }
                     } else {
                         
-                        $result['message'] = 'ID driver kosong';
+                        $result['message'] = 'ID Driver tidak boleh kosong';
                     }
                 } else {
                     
@@ -266,11 +266,11 @@ class OrderController extends \yii\rest\Controller
                 }
             } else {
                 
-                $result['message'] = 'Order ID kosong';
+                $result['message'] = 'Order ID tidak boleh kosong';
             }
         } else {
             
-            $result['message'] = 'Parameter yang dibutuhkan tidak ada';
+            $result['message'] = 'Parameter yang dibutuhkan tidak boleh kosong';
         }
         
         if ($flag) {
@@ -328,7 +328,7 @@ class OrderController extends \yii\rest\Controller
                         }
                     } else {
                         
-                        $result['message'] = 'ID Driver kosong';
+                        $result['message'] = 'ID Driver tidak boleh kosong';
                     }
                 } else {
                     
