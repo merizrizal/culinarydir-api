@@ -4,11 +4,11 @@ namespace api\controllers\v1;
 
 use Yii;
 use yii\filters\VerbFilter;
-use yii\web\UploadedFile;
 use Faker\Factory;
 use core\models\TransactionSession;
 use core\models\TransactionCanceledByDriver;
 use core\models\TransactionSessionDelivery;
+use sycomponent\Tools;
 
 class OrderController extends \yii\rest\Controller
 {
@@ -99,28 +99,22 @@ class OrderController extends \yii\rest\Controller
             
             if (!empty($modelTransactionSession->transactionSessionDelivery)) {
                 
-                if (($file = UploadedFile::getInstanceByName('image'))) {
+                $image = Tools::uploadFileWithoutModel('/img/transaction_session/', 'image', $post['order_id'], '-AD');
+                
+                if (($flag = !empty($image))) {
                     
-                    $fileName = 'AD-' . $post['order_id'] . '.' . $file->extension;
+                    $modelTransactionSessionDelivery = $modelTransactionSession->transactionSessionDelivery;
+                    $modelTransactionSessionDelivery->image = $image;
                     
-                    if (($flag = $file->saveAs(Yii::getAlias('@uploads') . '/img/transaction_session/' . $fileName))) {
+                    if (($flag = $modelTransactionSessionDelivery->save())) {
                         
-                        $modelTransactionSessionDelivery = $modelTransactionSession->transactionSessionDelivery;
-                        $modelTransactionSessionDelivery->image = $fileName;
-                        
-                        if (($flag = $modelTransactionSessionDelivery->save())) {
+                        if (!($flag = $this->updateStatusOrder($modelTransactionSession, 'Upload-Receipt'))) {
                             
-                            if (!($flag = $this->updateStatusOrder($modelTransactionSession, 'Upload-Receipt'))) {
-                                
-                                $result['message'] = 'Gagal Update Status Order';
-                            }
-                        } else {
-                            
-                            $result['error'] = $modelTransactionSessionDelivery->getErrors();
+                            $result['message'] = 'Gagal Update Status Order';
                         }
                     } else {
                         
-                        $result['message'] = 'Gagal Save Image';
+                        $result['error'] = $modelTransactionSessionDelivery->getErrors();
                     }
                 } else {
                     
