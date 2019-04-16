@@ -5,8 +5,10 @@ namespace api\controllers\v1;
 use Yii;
 use yii\filters\VerbFilter;
 use yii\web\UploadedFile;
+use Faker\Factory;
 use core\models\TransactionSession;
 use core\models\TransactionCanceledByDriver;
+use core\models\TransactionSessionDelivery;
 
 class OrderController extends \yii\rest\Controller
 {
@@ -201,18 +203,22 @@ class OrderController extends \yii\rest\Controller
             if (!empty($post['order_id'])) {
                 
                 $modelTransactionSession = TransactionSession::find()
-                    ->joinWith(['transactionSessionDelivery'])
                     ->andWhere(['ilike', 'order_id', $post['order_id'] . '_'])
                     ->one();
                 
-                if (!empty($modelTransactionSession->transactionSessionDelivery)) {
+                if (!empty($modelTransactionSession)) {
                     
                     $transaction = Yii::$app->db->beginTransaction();
                     
                     if (!empty($post['driver_user_id'])) {
                         
-                        $modelTransactionSessionDelivery = $modelTransactionSession->transactionSessionDelivery;
+                        $faker = Factory::create();
+                        
+                        $modelTransactionSessionDelivery = new TransactionSessionDelivery();
+                        $modelTransactionSessionDelivery->transaction_session_id = $modelTransactionSession->id;
                         $modelTransactionSessionDelivery->driver_id = $post['driver_user_id'];
+                        $modelTransactionSessionDelivery->total_distance = $faker->randomNumber(2);
+                        $modelTransactionSessionDelivery->total_delivery_fee = $faker->randomNumber(6);
                         
                         $flag = $modelTransactionSessionDelivery->save();
                         
@@ -232,7 +238,7 @@ class OrderController extends \yii\rest\Controller
                             }
                         } else {
                             
-                            $result['error'] = $modelTransactionSession->getErrors();
+                            $result['error'] = $modelTransactionSessionDelivery->getErrors();
                             
                             $transaction->rollBack();
                         }
