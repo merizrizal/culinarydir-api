@@ -42,7 +42,6 @@ class OrderController extends \yii\rest\Controller
         $result = [];
         
         $result['success'] = false;
-        $result['message'] = 'Order Detail tidak ditemukan';
         
         if (!empty(Yii::$app->request->post()['order_id'])) {
         
@@ -68,11 +67,16 @@ class OrderController extends \yii\rest\Controller
                     $result['detail'][$i]['note'] = $dataTransactionItem['note'];
                 }
                 
+                $result['success'] = true;
                 $result['total_price'] = $modelTransactionSession['total_price'];
                 $result['total_amount'] = $modelTransactionSession['total_amount'];
-                $result['success'] = true;
-                unset($result['message']);
+            } else {
+                
+                $result['message'] = 'Parameter order_id tidak boleh kosong';
             }
+        } else {
+            
+            $result['message'] = 'Order Detail tidak ditemukan';
         }
             
         return $result;
