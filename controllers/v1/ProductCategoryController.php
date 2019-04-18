@@ -4,8 +4,8 @@ namespace api\controllers\v1;
 
 use core\models\ProductCategory;
 use Yii;
-use yii\filters\VerbFilter;
 use yii\data\ActiveDataProvider;
+use yii\filters\VerbFilter;
 
 class ProductCategoryController extends \yii\rest\Controller 
 {
@@ -41,7 +41,7 @@ class ProductCategoryController extends \yii\rest\Controller
                 '(CASE 
                     WHEN type = \'General\' THEN \'A\'
                     ELSE \'B\'
-                END) AS type', 
+                END) AS type',
                 'name'                
             ])
             ->andFilterWhere(['ilike', 'name', Yii::$app->request->get('keyword')])

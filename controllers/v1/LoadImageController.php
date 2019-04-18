@@ -4,9 +4,9 @@ namespace api\controllers\v1;
 
 use Yii;
 use yii\filters\VerbFilter;
+use yii\imagine\Image;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
-use yii\imagine\Image;
 
 class LoadImageController extends \yii\web\Controller {
 
