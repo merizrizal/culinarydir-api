@@ -2,10 +2,9 @@
 
 namespace api\controllers\v1;
 
-use Yii;
+use core\models\UserPostMain;
 use yii\data\ActiveDataProvider;
 use yii\filters\VerbFilter;
-use core\models\UserPostMain;
 
 class UserPostController extends \yii\rest\Controller
 {
@@ -15,7 +14,7 @@ class UserPostController extends \yii\rest\Controller
         'linksEnvelope' => 'links',
         'metaEnvelope' => 'meta',
     ];
-    
+
     /**
      * @inheritdoc
      */
@@ -32,7 +31,7 @@ class UserPostController extends \yii\rest\Controller
                 ],
             ]);
     }
-    
+
     public function actionActivityList($userId)
     {
         $modelUserPostMain = UserPostMain::find()
@@ -42,11 +41,11 @@ class UserPostController extends \yii\rest\Controller
                 'business.businessLocation.city',
                 'user',
                 'userPostMains child' => function ($query) {
-            
+
                     $query->andOnCondition(['child.is_publish' => true]);
                 },
                 'userPostLoves' => function ($query) use ($userId) {
-            
+
                     $query->andOnCondition([
                         'user_post_love.user_id' => $userId,
                         'user_post_love.is_active' => true
@@ -61,11 +60,11 @@ class UserPostController extends \yii\rest\Controller
             ->orderBy(['user_post_main.created_at' => SORT_DESC])
             ->distinct()
             ->asArray();
-            
+
         $provider = new ActiveDataProvider([
             'query' => $modelUserPostMain,
         ]);
-        
+
         return $provider;
     }
 }

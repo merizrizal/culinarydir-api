@@ -6,7 +6,7 @@ use core\models\City;
 use yii\filters\VerbFilter;
 
 class CityController extends \yii\rest\Controller {
-    
+
     /**
      * @inheritdoc
      */
@@ -23,15 +23,15 @@ class CityController extends \yii\rest\Controller {
                 ],
             ]);
     }
-    
-    public function actionList() 
+
+    public function actionList()
     {
-        
+
         $model = City::find()
             ->select('id, name')
             ->orderBy(['name' => SORT_ASC])
             ->asArray()->all();
-        
+
         return $model;
     }
 }
