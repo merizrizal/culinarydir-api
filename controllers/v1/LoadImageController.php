@@ -4,6 +4,7 @@ namespace api\controllers\v1;
 
 use Yii;
 use yii\filters\VerbFilter;
+use function yii\i18n\Formatter\asDatetime as time;
 use yii\imagine\Image;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
@@ -55,6 +56,11 @@ class LoadImageController extends \yii\web\Controller {
     public function actionPromo($image, $w = null, $h = null)
     {
         return $this->loadImage('promo/', $image, $w, $h);
+    }
+
+    public function actionLoadImage($image, $w = null, $h = null)
+    {
+        return $this->loadImage('', $image, $w, $h);
     }
 
     private function loadImage($directory, $image, $w = null, $h = null, $defaultImage = 'image-no-available.jpg')
