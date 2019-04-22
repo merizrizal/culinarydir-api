@@ -61,19 +61,18 @@ class SearchResultController extends \yii\rest\Controller
                     },
                     'businessImages' => function ($query) {
 
-                        $query->select(['business_image.business_id' , 'business_image.image'])
+                        $query->select(['business_image.business_id', 'business_image.image'])
                             ->andOnCondition(['type' => 'Profile']);
                     },
                     'businessLocation' => function ($query) {
 
                         $query->select([
-                            'business_location.business_id', 'business_location.address_type', 'business_location.address',
-                            'business_location.city_id', 'business_location.coordinate'
-                        ]);
+                                'business_location.business_id', 'business_location.city_id'
+                            ]);
                     },
                     'businessLocation.city' => function ($query) {
 
-                        $query->select(['city.id', 'city.name']);
+                        $query->select(['city.id']);
                     },
                     'businessProductCategories' => function ($query) {
 
@@ -88,9 +87,8 @@ class SearchResultController extends \yii\rest\Controller
                     'businessDetail' => function ($query) {
 
                         $query->select([
-                            'business_detail.business_id', 'business_detail.price_min', 'business_detail.price_max',
-                            'business_detail.voters', 'business_detail.vote_value', 'business_detail.vote_points', 'business_detail.love_value'
-                        ]);
+                                'business_detail.business_id'
+                            ]);
                     },
                     'userLoves' => function ($query) {
 
@@ -110,7 +108,7 @@ class SearchResultController extends \yii\rest\Controller
                     },
                     'membershipType.membershipTypeProductServices.productService' => function ($query) {
 
-                        $query->select(['product_service.id', 'product_service.code_name']);
+                        $query->select(['product_service.id']);
                     },
                 ])
                 ->andWhere(['membership_type.as_archive' => false])
