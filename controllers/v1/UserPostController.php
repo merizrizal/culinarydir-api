@@ -3,6 +3,7 @@
 namespace api\controllers\v1;
 
 use core\models\UserPostMain;
+use Yii;
 use yii\data\ActiveDataProvider;
 use yii\filters\VerbFilter;
 
@@ -32,13 +33,15 @@ class UserPostController extends \yii\rest\Controller
             ]);
     }
 
-    public function actionActivityList($userId)
+    public function actionActivityList()
     {
+        $userId = Yii::$app->request->get('user_id');
+
         $modelUserPostMain = UserPostMain::find()
             ->select([
                 'user_post_main.id', 'user_post_main.text', 'user_post_main.love_value', 'user_post_main.created_at',
                 'business.id as business_id', 'business.name as business_name',
-                'user.id as user_id', 'user.full_name as user_full_name'
+                'user.id as user_id', 'user.full_name as user_full_name', 'user.image as user_image'
             ])
             ->joinWith([
                 'business' => function ($query) {
@@ -76,7 +79,7 @@ class UserPostController extends \yii\rest\Controller
                 'userPostComments'=> function ($query) {
 
                     $query->select([
-                            'user_post_comment.id', 'user_post_comment.user_post_main_id', 'user_post_comment.text'
+                            'user_post_comment.id', 'user_post_comment.user_post_main_id'
                         ]);
                 }
             ])
