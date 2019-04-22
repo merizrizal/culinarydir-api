@@ -4,7 +4,6 @@ namespace api\controllers\v1;
 
 use Yii;
 use yii\filters\VerbFilter;
-use function yii\i18n\Formatter\asDatetime as time;
 use yii\imagine\Image;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
