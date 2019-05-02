@@ -16,7 +16,7 @@ $this->title = $name; ?>
 <section class="content">
 
     <div class="site-error">
-
+s
         <div class="alert alert-danger">
             <h3><?= $exception->getMessage() ?></h3>
         </div>
