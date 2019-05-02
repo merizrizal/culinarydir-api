@@ -4,9 +4,9 @@ namespace api\controllers\v1;
 
 use Yii;
 use yii\filters\VerbFilter;
+use yii\imagine\Image;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
-use yii\imagine\Image;
 
 class LoadImageController extends \yii\web\Controller {
 
@@ -57,37 +57,42 @@ class LoadImageController extends \yii\web\Controller {
         return $this->loadImage('promo/', $image, $w, $h);
     }
 
+    public function actionLoadImage($image, $w = null, $h = null)
+    {
+        return $this->loadImage('', $image, $w, $h);
+    }
+
     private function loadImage($directory, $image, $w = null, $h = null, $defaultImage = 'image-no-available.jpg')
     {
         if (empty($image)) {
-            
+
             return $this->loadImage('', $defaultImage, $w, $h);
         }
-        
+
         try {
-            
+
             $this->image = Yii::getAlias('@uploads') . '/img/' . $directory . $image;
-    
+
             if (!empty($w) || !empty($h)) {
-    
+
                 $this->image = Yii::getAlias('@uploads') . '/img/' . $directory . $w . 'x' . $h . $image;
-    
+
                 Image::thumbnail('@uploads' . '/img/' . $directory . $image, $w, $h)
                     ->save($this->image);
             }
         } catch (\Imagine\Exception\InvalidArgumentException $e) {
-            
+
             return $this->loadImage('', $defaultImage, $w, $h);
         } catch (\Imagine\Exception\Exception $e) {
-            
+
             return $this->loadImage('', $defaultImage, $w, $h);
         } catch (\Exception $e) {
-            
+
             return $this->loadImage('', $defaultImage, $w, $h);
         }
-        
+
         Yii::$app->formatter->locale = 'en_US';
-        
+
         Yii::$app->getResponse()->getHeaders()
             ->set('Pragma', 'public')
             ->set('Expires', Yii::$app->formatter->asDatetime((time() + 60 * 60 * 24 * 60), 'EEE, dd MMM yyyy HH:mm:ss O'))

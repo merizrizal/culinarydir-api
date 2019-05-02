@@ -6,7 +6,7 @@ use core\models\Category;
 use yii\filters\VerbFilter;
 
 class CategoryController extends \yii\rest\Controller {
-    
+
     /**
      * @inheritdoc
      */
@@ -23,15 +23,15 @@ class CategoryController extends \yii\rest\Controller {
                 ],
             ]);
     }
-    
+
     public function actionList()
     {
-        
+
         $model = Category::find()
             ->select('id, name')
             ->orderBy(['name' => SORT_ASC])
             ->asArray()->all();
-        
+
         return $model;
     }
 }
