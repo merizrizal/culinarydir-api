@@ -22,7 +22,7 @@ $this->title = $name; ?>
         </div>
 
         <p>
-            <?= Html::a('Back.', Yii::$app->request->referrer); ?>
+            <?= Html::a('Back.', \Yii::$app->request->referrer); ?>
         </p>
 
     </div>

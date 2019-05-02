@@ -34,7 +34,7 @@ class UserPostController extends \yii\rest\Controller
 
     public function actionActivityList()
     {
-        $userId = Yii::$app->request->get('user_id');
+        $userId = \Yii::$app->request->get('user_id');
 
         $modelUserPostMain = UserPostMain::find()
             ->select([

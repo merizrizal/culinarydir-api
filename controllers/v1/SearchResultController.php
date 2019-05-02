@@ -36,7 +36,7 @@ class SearchResultController extends \yii\rest\Controller
     {
         $provider = null;
 
-        if (Yii::$app->request->get('search_type') == 'favorite' || Yii::$app->request->get('search_type') == 'online-order') {
+        if (\Yii::$app->request->get('search_type') == 'favorite' || \Yii::$app->request->get('search_type') == 'online-order') {
 
             $modelBusiness = Business::find()
                 ->select([
@@ -93,7 +93,7 @@ class SearchResultController extends \yii\rest\Controller
 
                         $query->select(['user_love.user_id', 'user_love.business_id'])
                             ->andOnCondition([
-                                'user_love.user_id' => Yii::$app->request->get('user_id'),
+                                'user_love.user_id' => \Yii::$app->request->get('user_id'),
                                 'user_love.is_active' => true
                             ]);
                     },
@@ -111,40 +111,40 @@ class SearchResultController extends \yii\rest\Controller
                     },
                 ])
                 ->andWhere(['membership_type.as_archive' => false])
-                ->andFilterWhere(['business_location.city_id' => Yii::$app->request->get('city_id')])
+                ->andFilterWhere(['business_location.city_id' => \Yii::$app->request->get('city_id')])
                 ->andFilterWhere([
                     'OR',
-                    ['ilike', 'business.name', Yii::$app->request->get('keyword')],
-                    ['ilike', 'product_category.name', Yii::$app->request->get('keyword')],
-                    ['ilike', 'business_location.address', Yii::$app->request->get('keyword')]
+                    ['ilike', 'business.name', \Yii::$app->request->get('keyword')],
+                    ['ilike', 'product_category.name', \Yii::$app->request->get('keyword')],
+                    ['ilike', 'business_location.address', \Yii::$app->request->get('keyword')]
                 ])
-                ->andFilterWhere(['business_product_category.product_category_id' => Yii::$app->request->get('product_category_id')]);
+                ->andFilterWhere(['business_product_category.product_category_id' => \Yii::$app->request->get('product_category_id')]);
 
-            if (Yii::$app->request->get('search_type') == 'favorite') {
+            if (\Yii::$app->request->get('search_type') == 'favorite') {
 
-                $modelBusiness = $modelBusiness->andFilterWhere(['business_category.category_id' => Yii::$app->request->get('category_id')]);
-            } else if (Yii::$app->request->get('search_type') == 'online-order') {
+                $modelBusiness = $modelBusiness->andFilterWhere(['business_category.category_id' => \Yii::$app->request->get('category_id')]);
+            } else if (\Yii::$app->request->get('search_type') == 'online-order') {
 
                 $modelBusiness = $modelBusiness->andFilterWhere(['product_service.code_name' => 'order-online']);
             }
 
-            if (!empty(Yii::$app->request->get('coordinate_lat')) && !empty(Yii::$app->request->get('coordinate_lng')) && !empty(Yii::$app->request->get('radius_map'))) {
+            if (!empty(\Yii::$app->request->get('coordinate_lat')) && !empty(\Yii::$app->request->get('coordinate_lng')) && !empty(\Yii::$app->request->get('radius_map'))) {
 
-                $latitude = Yii::$app->request->get('coordinate_lat');
-                $longitude = Yii::$app->request->get('coordinate_lng');
-                $radius = Yii::$app->request->get('radius_map');
+                $latitude = \Yii::$app->request->get('coordinate_lat');
+                $longitude = \Yii::$app->request->get('coordinate_lng');
+                $radius = \Yii::$app->request->get('radius_map');
 
                 $modelBusiness = $modelBusiness->andWhere('(acos(sin(radians(split_part("business_location"."coordinate" , \',\', 1)::double precision)) * sin(radians(' . $latitude . ')) + cos(radians(split_part("business_location"."coordinate" , \',\', 1)::double precision)) * cos(radians(' . $latitude . ')) * cos(radians(split_part("business_location"."coordinate" , \',\', 2)::double precision) - radians(' . $longitude . '))) * 6356 * 1000) <= ' . $radius);
             }
 
-            if (!empty(Yii::$app->request->get('price_min')) || !empty(Yii::$app->request->get('price_max'))) {
+            if (!empty(\Yii::$app->request->get('price_min')) || !empty(\Yii::$app->request->get('price_max'))) {
 
                 $modelBusiness = $modelBusiness->andFilterWhere([
                     'OR',
-                    '(' . Yii::$app->request->get('price_min') . ' >= "business_detail"."price_min" AND ' . Yii::$app->request->get('price_min') . ' <= "business_detail"."price_max")',
-                    '(' . Yii::$app->request->get('price_max') . ' >= "business_detail"."price_min" AND ' . Yii::$app->request->get('price_max') . ' <= "business_detail"."price_max")',
-                    '("business_detail"."price_min" >= ' . Yii::$app->request->get('price_min') . ' AND "business_detail"."price_min" <= ' . Yii::$app->request->get('price_max') . ')',
-                    '("business_detail"."price_max" >= ' . Yii::$app->request->get('price_min') . ' AND "business_detail"."price_max" <= ' . Yii::$app->request->get('price_max') . ')',
+                    '(' . \Yii::$app->request->get('price_min') . ' >= "business_detail"."price_min" AND ' . \Yii::$app->request->get('price_min') . ' <= "business_detail"."price_max")',
+                    '(' . \Yii::$app->request->get('price_max') . ' >= "business_detail"."price_min" AND ' . \Yii::$app->request->get('price_max') . ' <= "business_detail"."price_max")',
+                    '("business_detail"."price_min" >= ' . \Yii::$app->request->get('price_min') . ' AND "business_detail"."price_min" <= ' . \Yii::$app->request->get('price_max') . ')',
+                    '("business_detail"."price_max" >= ' . \Yii::$app->request->get('price_min') . ' AND "business_detail"."price_max" <= ' . \Yii::$app->request->get('price_max') . ')',
                 ]);
             }
 
