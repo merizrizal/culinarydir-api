@@ -2,7 +2,6 @@
 
 namespace api\controllers\v1;
 
-use Yii;
 use yii\filters\VerbFilter;
 use yii\imagine\Image;
 use yii\web\NotFoundHttpException;

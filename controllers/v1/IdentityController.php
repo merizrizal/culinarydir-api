@@ -11,7 +11,6 @@ use core\models\UserSocialMedia;
 use frontend\models\RequestResetPassword;
 use frontend\models\ResetPassword;
 use frontend\models\UserRegister;
-use Yii;
 use yii\filters\VerbFilter;
 
 class IdentityController extends \yii\rest\Controller {

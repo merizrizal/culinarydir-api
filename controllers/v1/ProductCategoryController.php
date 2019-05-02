@@ -3,7 +3,6 @@
 namespace api\controllers\v1;
 
 use core\models\ProductCategory;
-use Yii;
 use yii\data\ActiveDataProvider;
 use yii\filters\VerbFilter;
 
