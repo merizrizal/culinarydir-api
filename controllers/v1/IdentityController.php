@@ -11,7 +11,6 @@ use core\models\UserSocialMedia;
 use frontend\models\RequestResetPassword;
 use frontend\models\ResetPassword;
 use frontend\models\UserRegister;
-use Yii;
 use yii\filters\VerbFilter;
 
 class IdentityController extends \yii\rest\Controller {
@@ -41,7 +40,7 @@ class IdentityController extends \yii\rest\Controller {
 
     public function actionLogin()
     {
-        $post = Yii::$app->request->post();
+        $post = \Yii::$app->request->post();
 
         $result = [];
 
@@ -53,7 +52,7 @@ class IdentityController extends \yii\rest\Controller {
 
         if (($flag = $model->login())) {
 
-            $randomString = Yii::$app->security->generateRandomString();
+            $randomString = \Yii::$app->security->generateRandomString();
             $randomStringHalf = substr($randomString, 16);
 
             $model->getUser()->login_token = substr($randomString, 0, 15) . $model->getUser()->id . $randomStringHalf . '_' . time();
@@ -85,7 +84,7 @@ class IdentityController extends \yii\rest\Controller {
 
     public function actionLoginSocmed()
     {
-        $post = Yii::$app->request->post();
+        $post = \Yii::$app->request->post();
 
         $result = [];
 
@@ -101,7 +100,7 @@ class IdentityController extends \yii\rest\Controller {
             $result['action'] = 'register';
         } else {
 
-            $transaction = Yii::$app->db->beginTransaction();
+            $transaction = \Yii::$app->db->beginTransaction();
             $flag = false;
 
             $modelUserSocialMedia = !empty($modelUser->userSocialMedia) ? $modelUser->userSocialMedia : new UserSocialMedia();
@@ -152,7 +151,7 @@ class IdentityController extends \yii\rest\Controller {
 
                 if (($flag = $model->login())) {
 
-                    $randomString = Yii::$app->security->generateRandomString();
+                    $randomString = \Yii::$app->security->generateRandomString();
                     $randomStringHalf = substr($randomString, 16);
 
                     $model->getUser()->login_token = substr($randomString, 0, 15) . $model->getUser()->id . $randomStringHalf . '_' . time();
@@ -191,11 +190,11 @@ class IdentityController extends \yii\rest\Controller {
 
     public function actionRegister()
     {
-        $post = Yii::$app->request->post();
+        $post = \Yii::$app->request->post();
 
         $result = [];
 
-        $transaction = Yii::$app->db->beginTransaction();
+        $transaction = \Yii::$app->db->beginTransaction();
         $flag = false;
 
         $userLevel = UserLevel::find()
@@ -248,15 +247,15 @@ class IdentityController extends \yii\rest\Controller {
 
                             if (($flag = $modelUserSocialMedia->save())) {
 
-                                Yii::$app->mailer->compose(['html' => 'register_confirmation'], [
+                                \Yii::$app->mailer->compose(['html' => 'register_confirmation'], [
                                     'email' => $post['email'],
                                     'full_name' => $post['first_name'] . ' ' . $post['last_name'],
                                     'socmed' => strtolower($post['socmed']) === 'google' ? 'Google' : 'Facebook',
                                     'isFromApi' => true
                                 ])
-                                ->setFrom([Yii::$app->params['supportEmail'] => Yii::$app->name . ' Support'])
+                                ->setFrom([\Yii::$app->params['supportEmail'] => \Yii::$app->name . ' Support'])
                                 ->setTo($post['email'])
-                                ->setSubject('Welcome to ' . Yii::$app->name)
+                                ->setSubject('Welcome to ' . \Yii::$app->name)
                                 ->send();
                             } else {
 
@@ -264,22 +263,22 @@ class IdentityController extends \yii\rest\Controller {
                             }
                         } else {
 
-                            $randomString = Yii::$app->security->generateRandomString();
+                            $randomString = \Yii::$app->security->generateRandomString();
                             $randomStringHalf = substr($randomString, 16);
                             $modelUserRegister->not_active = true;
                             $modelUserRegister->account_activation_token = substr($randomString, 0, 15) . $modelUserRegister->id . $randomStringHalf . '_' . time();
 
                             if (($flag = $modelUserRegister->save())) {
 
-                                Yii::$app->mailer->compose(['html' => 'account_activation'], [
+                                \Yii::$app->mailer->compose(['html' => 'account_activation'], [
                                     'email' => $post['email'],
                                     'full_name' => $post['first_name'] . ' ' . $post['last_name'],
                                     'userToken' => $modelUserRegister->account_activation_token,
                                     'isFromApi' => true
                                 ])
-                                ->setFrom([Yii::$app->params['supportEmail'] => Yii::$app->name . ' Support'])
+                                ->setFrom([\Yii::$app->params['supportEmail'] => \Yii::$app->name . ' Support'])
                                 ->setTo($post['email'])
-                                ->setSubject(Yii::$app->name . ' Account Activation')
+                                ->setSubject(\Yii::$app->name . ' Account Activation')
                                 ->send();
                             } else {
 
@@ -320,7 +319,7 @@ class IdentityController extends \yii\rest\Controller {
 
     public function actionRequestResetPasswordToken()
     {
-        $post = Yii::$app->request->post();
+        $post = \Yii::$app->request->post();
 
         $result = [];
 
@@ -334,10 +333,10 @@ class IdentityController extends \yii\rest\Controller {
 
             if (($flag = $model->sendEmail(true))) {
 
-                $result['message'] = Yii::t('app', 'We have sent a verification code to') . ' ' . $model->email;
+                $result['message'] = \Yii::t('app', 'We have sent a verification code to') . ' ' . $model->email;
             } else {
 
-                $result['message'] = Yii::t('app', 'An error has occurred while requesting password reset');
+                $result['message'] = \Yii::t('app', 'An error has occurred while requesting password reset');
             }
         } else {
 
@@ -358,7 +357,7 @@ class IdentityController extends \yii\rest\Controller {
 
     public function actionTokenVerification()
     {
-        $post = Yii::$app->request->post();
+        $post = \Yii::$app->request->post();
 
         $result = [];
 
@@ -382,7 +381,7 @@ class IdentityController extends \yii\rest\Controller {
 
     public function actionResetPassword()
     {
-        $post = Yii::$app->request->post();
+        $post = \Yii::$app->request->post();
 
         $result = [];
 

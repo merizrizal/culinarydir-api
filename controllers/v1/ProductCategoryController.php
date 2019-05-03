@@ -3,7 +3,6 @@
 namespace api\controllers\v1;
 
 use core\models\ProductCategory;
-use Yii;
 use yii\data\ActiveDataProvider;
 use yii\filters\VerbFilter;
 
@@ -44,7 +43,7 @@ class ProductCategoryController extends \yii\rest\Controller
                 END) AS type',
                 'name'
             ])
-            ->andFilterWhere(['ilike', 'name', Yii::$app->request->get('keyword')])
+            ->andFilterWhere(['ilike', 'name', \Yii::$app->request->get('keyword')])
             ->andWhere(['<>', 'type', 'Menu'])
             ->andWhere(['is_active' => true])
             ->orderBy(['type' => SORT_ASC, 'name' => SORT_ASC])

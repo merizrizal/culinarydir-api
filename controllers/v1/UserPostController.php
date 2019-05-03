@@ -3,7 +3,6 @@
 namespace api\controllers\v1;
 
 use core\models\UserPostMain;
-use Yii;
 use yii\data\ActiveDataProvider;
 use yii\filters\VerbFilter;
 
@@ -35,7 +34,7 @@ class UserPostController extends \yii\rest\Controller
 
     public function actionActivityList()
     {
-        $userId = Yii::$app->request->get('user_id');
+        $userId = \Yii::$app->request->get('user_id');
 
         $modelUserPostMain = UserPostMain::find()
             ->select([

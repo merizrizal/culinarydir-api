@@ -2,7 +2,6 @@
 
 namespace api\controllers\v1;
 
-use Yii;
 use yii\filters\VerbFilter;
 use yii\imagine\Image;
 use yii\web\NotFoundHttpException;
@@ -71,11 +70,11 @@ class LoadImageController extends \yii\web\Controller {
 
         try {
 
-            $this->image = Yii::getAlias('@uploads') . '/img/' . $directory . $image;
+            $this->image = \Yii::getAlias('@uploads') . '/img/' . $directory . $image;
 
             if (!empty($w) || !empty($h)) {
 
-                $this->image = Yii::getAlias('@uploads') . '/img/' . $directory . $w . 'x' . $h . $image;
+                $this->image = \Yii::getAlias('@uploads') . '/img/' . $directory . $w . 'x' . $h . $image;
 
                 Image::thumbnail('@uploads' . '/img/' . $directory . $image, $w, $h)
                     ->save($this->image);
@@ -91,25 +90,25 @@ class LoadImageController extends \yii\web\Controller {
             return $this->loadImage('', $defaultImage, $w, $h);
         }
 
-        Yii::$app->formatter->locale = 'en_US';
+        \Yii::$app->formatter->locale = 'en_US';
 
-        Yii::$app->getResponse()->getHeaders()
+        \Yii::$app->getResponse()->getHeaders()
             ->set('Pragma', 'public')
-            ->set('Expires', Yii::$app->formatter->asDatetime((time() + 60 * 60 * 24 * 60), 'EEE, dd MMM yyyy HH:mm:ss O'))
+            ->set('Expires', \Yii::$app->formatter->asDatetime((time() + 60 * 60 * 24 * 60), 'EEE, dd MMM yyyy HH:mm:ss O'))
             ->set('Cache-Control', 'must-revalidate, post-check=0, pre-check=0')
             ->set('Content-Transfer-Encoding', 'binary')
             ->set('Content-Type', 'image/jpeg');
 
         try {
 
-            Yii::$app->response->stream = fopen($this->image, 'r');
+            \Yii::$app->response->stream = fopen($this->image, 'r');
         } catch (\yii\base\ErrorException $e) {
 
             throw new NotFoundHttpException('The requested image does not exist.');
         }
 
-        Yii::$app->response->format = Response::FORMAT_RAW;
+        \Yii::$app->response->format = Response::FORMAT_RAW;
 
-        return Yii::$app->response->send();
+        return \Yii::$app->response->send();
     }
 }

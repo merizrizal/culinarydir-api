@@ -16,13 +16,13 @@ $this->title = $name; ?>
 <section class="content">
 
     <div class="site-error">
-
+s
         <div class="alert alert-danger">
             <h3><?= $exception->getMessage() ?></h3>
         </div>
 
         <p>
-            <?= Html::a('Back.', Yii::$app->request->referrer); ?>
+            <?= Html::a('Back.', \Yii::$app->request->referrer); ?>
         </p>
 
     </div>
