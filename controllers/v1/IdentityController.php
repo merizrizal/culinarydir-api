@@ -172,10 +172,12 @@ class IdentityController extends \yii\rest\Controller {
 
                 $result['success'] = true;
                 $result['message'] = 'Login dengan ' . $post['socmed'] . ' berhasil';
+                $result['user_id'] = $model->getUser()->id;
+                $result['username'] = $model->getUser()->username;
+                $result['login_token'] = $model->getUser()->login_token;
                 $result['socmed_email'] = $post['socmed_email'];
                 $result['socmed_id'] = $post['socmed_id'];
                 $result['socmed'] = $post['socmed'];
-                $result['login_token'] = $model->getUser()->login_token;
             } else {
 
                 $transaction->rollBack();
