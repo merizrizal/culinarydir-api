@@ -142,9 +142,10 @@ class IdentityController extends \yii\rest\Controller {
                 }
             }
 
+            $model = new LoginForm();
+
             if ($flag) {
 
-                $model = new LoginForm();
                 $model->useSocmed = true;
                 $model->login_id = $post['socmed_email'];
 
