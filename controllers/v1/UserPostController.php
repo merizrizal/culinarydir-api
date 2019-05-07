@@ -2,6 +2,7 @@
 
 namespace api\controllers\v1;
 
+use core\models\UserPostLove;
 use core\models\UserPostMain;
 use yii\data\ActiveDataProvider;
 use yii\filters\VerbFilter;
@@ -27,6 +28,7 @@ class UserPostController extends \yii\rest\Controller
                     'class' => VerbFilter::className(),
                     'actions' => [
                         'activity-list' => ['GET'],
+                        'love' => ['POST'],
                     ],
                 ],
             ]);
@@ -94,5 +96,75 @@ class UserPostController extends \yii\rest\Controller
         ]);
 
         return $provider;
+    }
+
+    public function actionLove()
+    {
+        $post = \Yii::$app->request->post();
+
+        $result = [];
+
+        $transaction = \Yii::$app->db->beginTransaction();
+        $flag = false;
+
+        if (!empty($post['user_id'])) {
+
+            $modelUserPostMain = UserPostMain::find()
+                ->andWhere(['id' => $post['id']])
+                ->andWhere(['is_publish' => true])
+                ->one();
+
+            if (!empty($modelUserPostMain)) {
+
+                $modelUserPostLove = UserPostLove::find()
+                    ->andWhere(['unique_id' => $post['id'] . '-' . $post['user_id']])
+                    ->one();
+
+                if (!empty($modelUserPostLove)) {
+
+                    $modelUserPostLove->is_active = !$modelUserPostLove->is_active;
+                } else {
+
+                    $modelUserPostLove = new UserPostLove();
+
+                    $modelUserPostLove->user_post_main_id = $post['id'];
+                    $modelUserPostLove->user_id = $post['user_id'];
+                    $modelUserPostLove->is_active = true;
+                    $modelUserPostLove->unique_id = $post['id'] . '-' . $post['user_id'];
+                }
+
+                if (($flag = $modelUserPostLove->save())) {
+
+                    if ($modelUserPostLove->is_active) {
+
+                        $modelUserPostMain->love_value += 1;
+                    } else {
+
+                        $modelUserPostMain->love_value -= 1;
+                    }
+
+                    $flag = $modelUserPostMain->save();
+                }
+            }
+        } else {
+
+            $result['error']['user_id'] = ['empty'];
+        }
+
+        if ($flag) {
+
+            $transaction->commit();
+
+            $result['success'] = true;
+            $result['is_active'] = $modelUserPostLove->is_active;
+        } else {
+
+            $transaction->rollBack();
+
+            $result['success'] = false;
+            $result['message'] = 'Proses like gagal disimpan';
+        }
+
+        return $result;
     }
 }
