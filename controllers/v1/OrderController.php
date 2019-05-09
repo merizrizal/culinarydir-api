@@ -2,14 +2,13 @@
 
 namespace api\controllers\v1;
 
-use Yii;
-use yii\filters\VerbFilter;
 use Faker\Factory;
-use core\models\TransactionSession;
 use core\models\TransactionCanceledByDriver;
+use core\models\TransactionSession;
 use core\models\TransactionSessionDelivery;
 use core\models\User;
 use sycomponent\Tools;
+use yii\filters\VerbFilter;
 
 class OrderController extends \yii\rest\Controller
 {
@@ -44,7 +43,7 @@ class OrderController extends \yii\rest\Controller
 
         $result['success'] = false;
 
-        if (!empty(Yii::$app->request->post()['order_id'])) {
+        if (!empty(\Yii::$app->request->post()['order_id'])) {
 
             $modelTransactionSession = TransactionSession::find()
                 ->joinWith([
@@ -54,7 +53,7 @@ class OrderController extends \yii\rest\Controller
                     'userOrdered.userPerson.person',
                     'transactionSessionDelivery'
                 ])
-                ->andWhere(['ilike', 'order_id', Yii::$app->request->post()['order_id'] . '_'])
+                ->andWhere(['ilike', 'order_id', \Yii::$app->request->post()['order_id'] . '_'])
                 ->asArray()->one();
 
             $modelUserDriver = User::find()
@@ -101,9 +100,9 @@ class OrderController extends \yii\rest\Controller
 
         $result = [];
 
-        $transaction = Yii::$app->db->beginTransaction();
+        $transaction = \Yii::$app->db->beginTransaction();
 
-        if (!empty(($post = Yii::$app->request->post())) && !empty($post['order_id'])) {
+        if (!empty(($post = \Yii::$app->request->post())) && !empty($post['order_id'])) {
 
             $modelTransactionSession = TransactionSession::find()
                 ->joinWith(['transactionSessionDelivery'])
@@ -164,9 +163,9 @@ class OrderController extends \yii\rest\Controller
 
         $result = [];
 
-        $transaction = Yii::$app->db->beginTransaction();
+        $transaction = \Yii::$app->db->beginTransaction();
 
-        if (!empty(($post = Yii::$app->request->post()))) {
+        if (!empty(($post = \Yii::$app->request->post()))) {
 
             if (!empty($post['order_id'])) {
 
@@ -230,9 +229,9 @@ class OrderController extends \yii\rest\Controller
 
         $result = [];
 
-        $transaction = Yii::$app->db->beginTransaction();
+        $transaction = \Yii::$app->db->beginTransaction();
 
-        if (!empty(($post = Yii::$app->request->post()))) {
+        if (!empty(($post = \Yii::$app->request->post()))) {
 
             if (!empty($post['order_id'])) {
 
@@ -302,9 +301,9 @@ class OrderController extends \yii\rest\Controller
 
         $result = [];
 
-        $transaction = Yii::$app->db->beginTransaction();
+        $transaction = \Yii::$app->db->beginTransaction();
 
-        if (!empty(($post = Yii::$app->request->post()))) {
+        if (!empty(($post = \Yii::$app->request->post()))) {
 
             if (!empty($post['order_id'])) {
 
@@ -372,9 +371,9 @@ class OrderController extends \yii\rest\Controller
 
         $result['success'] = false;
 
-        if (!empty(Yii::$app->request->post()['order_id'])) {
+        if (!empty(\Yii::$app->request->post()['order_id'])) {
 
-            $result['success'] = $this->updateStatusOrder(Yii::$app->request->post()['order_id'], 'Send-Order');
+            $result['success'] = $this->updateStatusOrder(\Yii::$app->request->post()['order_id'], 'Send-Order');
         }
 
         return $result;
@@ -386,9 +385,9 @@ class OrderController extends \yii\rest\Controller
 
         $result['success'] = false;
 
-        if (!empty(Yii::$app->request->post()['order_id'])) {
+        if (!empty(\Yii::$app->request->post()['order_id'])) {
 
-            $result['success'] = $this->updateStatusOrder(Yii::$app->request->post()['order_id'], 'Finish');
+            $result['success'] = $this->updateStatusOrder(\Yii::$app->request->post()['order_id'], 'Finish');
         }
 
         return $result;
