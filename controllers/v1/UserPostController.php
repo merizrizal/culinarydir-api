@@ -41,7 +41,7 @@ class UserPostController extends \yii\rest\Controller
         $modelUserPostMain = UserPostMain::find()
             ->select([
                 'user_post_main.id', 'user_post_main.text', 'user_post_main.love_value', 'user_post_main.created_at',
-                'business.id as business_id', 'business.name as business_name',
+                'business.id as business_id', 'business.unique_name as business_unique_name', 'business.name as business_name',
                 'user.id as user_id', 'user.full_name as user_full_name', 'user.image as user_image'
             ])
             ->joinWith([
