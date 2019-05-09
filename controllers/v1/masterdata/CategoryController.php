@@ -1,12 +1,12 @@
 <?php
 
-namespace api\controllers\v1;
+namespace api\controllers\v1\masterdata;
 
 use core\models\Category;
 use yii\filters\VerbFilter;
 
-class CategoryController extends \yii\rest\Controller {
-
+class CategoryController extends \yii\rest\Controller
+{
     /**
      * @inheritdoc
      */

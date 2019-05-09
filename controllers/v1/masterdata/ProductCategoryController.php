@@ -1,6 +1,6 @@
 <?php
 
-namespace api\controllers\v1;
+namespace api\controllers\v1\masterdata;
 
 use core\models\ProductCategory;
 use yii\data\ActiveDataProvider;

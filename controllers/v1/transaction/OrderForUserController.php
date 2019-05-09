@@ -1,12 +1,11 @@
 <?php
 
-namespace api\controllers\v1;
+namespace api\controllers\v1\transaction;
 
-use core\models\City;
 use yii\filters\VerbFilter;
 
-class CityController extends \yii\rest\Controller {
-
+class OrderForUserController extends \yii\rest\Controller
+{
     /**
      * @inheritdoc
      */
@@ -18,20 +17,9 @@ class CityController extends \yii\rest\Controller {
                 'verbs' => [
                     'class' => VerbFilter::className(),
                     'actions' => [
-                        'list' => ['GET'],
+
                     ],
                 ],
             ]);
-    }
-
-    public function actionList()
-    {
-
-        $model = City::find()
-            ->select('id, name')
-            ->orderBy(['name' => SORT_ASC])
-            ->asArray()->all();
-
-        return $model;
     }
 }
