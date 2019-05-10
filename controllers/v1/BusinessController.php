@@ -3,10 +3,12 @@
 namespace api\controllers\v1;
 
 use core\models\Business;
+use core\models\BusinessHour;
 use core\models\User;
 use Yii;
 use yii\filters\VerbFilter;
 use core\models\TransactionSession;
+use core\models\BusinessHourAdditional;
 
 class BusinessController extends \yii\rest\Controller {
 
@@ -24,7 +26,9 @@ class BusinessController extends \yii\rest\Controller {
                         'get-operational-hours' => ['POST'],
                         'get-branch' => ['POST'],
                         'get-finish-order' => ['POST'],
-                        'get-on-progress-order' => ['POST']
+                        'get-on-progress-order' => ['POST'],
+                        'update-open-status' => ['POST'],
+                        'update-operational-hours' => ['POST']
                     ],
                 ],
             ]);
@@ -42,7 +46,7 @@ class BusinessController extends \yii\rest\Controller {
                 },
                 'businessHours.businessHourAdditionals'
             ])
-            ->andWhere(['business.id' => Yii::$app->request->post()['business_id']])
+            ->andWhere(['business.id' => \Yii::$app->request->post()['business_id']])
             ->asArray()->one();
 
         if (!empty($modelBusiness)) {
@@ -51,7 +55,7 @@ class BusinessController extends \yii\rest\Controller {
 
                 foreach ($modelBusiness['businessHours'] as $i => $dataBusinessHour) {
 
-                    $day = Yii::t('app', Yii::$app->params['days'][$i]);
+                    $day = \Yii::t('app', \Yii::$app->params['days'][$i]);
 
                     $result[$day]['is_open'] = $dataBusinessHour['is_open'];
                     $result[$day]['hour'][0]['open'] = $dataBusinessHour['open_at'];
@@ -96,7 +100,7 @@ class BusinessController extends \yii\rest\Controller {
                 'userPerson.person.businessContactPeople.business.businessLocation',
                 'userPerson.person.businessContactPeople.business.businessHours.businessHourAdditionals'
             ])
-            ->andWhere(['user.id' => Yii::$app->request->post()['user_id']])
+            ->andWhere(['user.id' => \Yii::$app->request->post()['user_id']])
             ->asArray()->one();
 
         if (!empty($model)) {
@@ -117,7 +121,7 @@ class BusinessController extends \yii\rest\Controller {
 
                             $day = $days[$dataBusinessHour['day'] - 1];
 
-                            if (date('l') == $day) {
+                            if (date('l') == $day && $dataBusinessHour['is_open']) {
 
                                 $isOpen = $now >= $dataBusinessHour['open_at'] && $now <= $dataBusinessHour['close_at'];
 
@@ -159,21 +163,234 @@ class BusinessController extends \yii\rest\Controller {
 
     public function actionGetFinishOrder()
     {
+        return $this->getTodaysOrder('finish');
+    }
+
+    public function actionGetOnProgressOrder()
+    {
+        return $this->getTodaysOrder('on-progress');
+    }
+
+    public function actionUpdateOpenStatus()
+    {
+        $result = [];
+        $flag = false;
+        $result['success'] = false;
+
+        $modelBusinessHour = BusinessHour::find()
+            ->joinWith(['businessHourAdditionals'])
+            ->andWhere(['business_hour.business_id' => \Yii::$app->request->post()['business_id']])
+            ->all();
+
+        if (!empty($modelBusinessHour)) {
+
+            $transaction = \Yii::$app->db->beginTransaction();
+
+            foreach ($modelBusinessHour as $dataBusinessHour) {
+
+                $dataBusinessHour->is_open = \Yii::$app->request->post()['is_open'];
+
+                if (!($flag = $dataBusinessHour->save())) {
+
+                    break;
+                } else {
+
+                    if (!empty($dataBusinessHour->businessHourAdditionals)) {
+
+                        foreach ($dataBusinessHour->businessHourAdditionals as $dataBusinessHourAdditional) {
+
+                            $dataBusinessHourAdditional->is_open = $dataBusinessHour->is_open;
+
+                            if (!($flag = $dataBusinessHourAdditional->save())) {
+
+                                break 2;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if ($flag) {
+
+                $transaction->commit();
+
+                $result['success'] = true;
+                $result['message'] = 'Update Status buka/tutup berhasil';
+            } else {
+
+                $transaction->rollback();
+
+                $result['message'] = 'Update Status buka/tutup gagal, terdapat kesalahan saat menyimpan data';
+            }
+        } else {
+
+            $result['message'] = 'Business ID tidak ditemukan';
+        }
+
+        return $result;
+    }
+
+    public function actionUpdateOperationalHours()
+    {
+        $result = [];
+        $flag = false;
+        $result['success'] = false;
+
+        $post = \Yii::$app->request->post();
+
+        $modelBusinessHour = BusinessHour::find()
+            ->joinWith([
+                'businessHourAdditionals' => function ($query) use ($post) {
+
+                    $query->andOnCondition(['business_hour_additional.day' => $post['day']]);
+                }
+            ])
+            ->andWhere(['business_hour.business_id' => $post['business_id']])
+            ->andWhere(['business_hour.day' => $post['day']])
+            ->one();
+
+        if (!empty($modelBusinessHour)) {
+
+            $transaction = Yii::$app->db->beginTransaction();
+
+            if (!empty($post['hour'])) {
+
+                if (!empty($modelBusinessHour->businessHourAdditionals)) {
+
+                    foreach ($modelBusinessHour->businessHourAdditionals as $idx => $dataBusinessHourAdditional) {
+
+                        if ((count($post['hour']) - 1) < ($idx + 1)) {
+
+                            if (!($flag = BusinessHourAdditional::deleteAll(['id' => $dataBusinessHourAdditional->id]))) {
+
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                foreach ($post['hour'] as $i => $hour) {
+
+                    if ($i == 0) {
+
+                        $modelBusinessHour->open_at = $hour['open'];
+                        $modelBusinessHour->close_at = $hour['close'];
+
+                        if (!($flag = $modelBusinessHour->save())) {
+
+                            break;
+                        }
+                    } else {
+
+                        if (!empty(($modelBusinessHour->businessHourAdditionals[$i - 1]))) {
+
+                            $hourAdditional = $modelBusinessHour->businessHourAdditionals[$i - 1];
+
+                            $hourAdditional->open_at = $hour['open'];
+                            $hourAdditional->close_at = $hour['close'];
+
+                            if (!($flag = $hourAdditional->save())) {
+
+                                break;
+                            }
+                        } else {
+
+                            $newModelBusinessHourAdditional = new BusinessHourAdditional();
+                            $newModelBusinessHourAdditional->unique_id = $modelBusinessHour->id . '-' . $post['day'] . '-' . $i;
+                            $newModelBusinessHourAdditional->business_hour_id = $modelBusinessHour->id;
+                            $newModelBusinessHourAdditional->is_open = true;
+                            $newModelBusinessHourAdditional->day = $post['day'];
+                            $newModelBusinessHourAdditional->open_at = $hour['open'];
+                            $newModelBusinessHourAdditional->close_at = $hour['close'];
+
+                            if (!($flag = $newModelBusinessHourAdditional->save())) {
+
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if ($flag) {
+
+                    $transaction->commit();
+
+                    $result['success'] = true;
+                    $result['message'] = 'Update jam operasional berhasil';
+                } else {
+
+                    $transaction->rollback();
+
+                    $result['message'] = 'Update gagal, terjadi kesalahan saat menyimpan data';
+                }
+            } else {
+
+                $result['message'] = 'Parameter hour tidak ada';
+            }
+        } else {
+
+            $result['message'] = 'Business ID tidak ditemukan';
+        }
+
+        return $result;
+    }
+
+    private function getTodaysOrder($type)
+    {
         $result = [];
 
         \Yii::$app->formatter->timeZone = 'Asia/Jakarta';
 
         $modelTransactionSession = TransactionSession::find()
-            ->andWhere(['created_at' => \Yii::$app->formatter->asDate(time())])
-            ->asArray()->all();
+            ->joinWith([
+                'transactionSessionDelivery.driver',
+                'transactionItems.businessProduct',
+            ])
+            ->andWhere(['date(transaction_session.created_at)' => \Yii::$app->formatter->asDate(time())]);
 
         \Yii::$app->formatter->timeZone = 'UTC';
 
-        return $modelTransactionSession;
-    }
+        if ($type == 'finish') {
 
-    public function actionGetOnProgressOrder()
-    {
+            $modelTransactionSession = $modelTransactionSession->andWhere(['status' => ['Finish', 'Upload-Receipt', 'Send-Order', 'Confirm-Price']]);
+        } else {
 
+            $modelTransactionSession = $modelTransactionSession->andWhere(['status' => 'Take-Order']);
+        }
+
+        $modelTransactionSession = $modelTransactionSession->asArray()->all();
+
+        if (!empty($modelTransactionSession)) {
+
+            foreach ($modelTransactionSession as $i => $dataTransactionSession) {
+
+                if (!empty($dataTransactionSession['transactionSessionDelivery'])) {
+
+                    $result[$i]['driver_name'] = $dataTransactionSession['transactionSessionDelivery']['driver']['full_name'];
+
+                    if ($type == 'finish') {
+
+                        $result[$i]['upload_receipt_time'] = $dataTransactionSession['transactionSessionDelivery']['updated_at'];
+                    } else {
+
+                        $result[$i]['take_order_time'] = $dataTransactionSession['transactionSessionDelivery']['created_at'];
+                    }
+                }
+
+                $result[$i]['menu_format'] = '';
+
+                foreach ($dataTransactionSession['transactionItems'] as $dataTransactionItem) {
+
+                    $result[$i]['menu_format'] .= $dataTransactionItem['businessProduct']['name'] . '(' . $dataTransactionItem['amount'] . '), ';
+                }
+
+                $result[$i]['menu_format'] = trim($result[$i]['menu_format'], ', ');
+            }
+        } else {
+
+            $result['message'] = $type == 'finish' ? 'Tidak ada transaksi yang selesai hari ini' : 'Tidak ada transaksi on progress hari ini';
+        }
+
+        return $result;
     }
 }
