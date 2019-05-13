@@ -57,8 +57,9 @@ class BusinessController extends \yii\rest\Controller {
 
                 foreach ($modelBusiness['businessHours'] as $i => $dataBusinessHour) {
 
-                    $day = \Yii::t('app', \Yii::$app->params['days'][$i]);
+                    $day = \Yii::t('app', \Yii::$app->params['days'][$dataBusinessHour['day'] - 1]);
 
+                    $result['schedule'][$i]['day_id'] = $dataBusinessHour['day'];
                     $result['schedule'][$i]['day'] = $day;
                     $result['schedule'][$i]['is_open'] = $dataBusinessHour['is_open'];
                     $result['schedule'][$i]['hour'] = [];
