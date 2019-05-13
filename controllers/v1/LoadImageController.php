@@ -7,8 +7,8 @@ use yii\imagine\Image;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
-class LoadImageController extends \yii\web\Controller {
-
+class LoadImageController extends \yii\web\Controller
+{
     private $image;
     /**
      * @inheritdoc

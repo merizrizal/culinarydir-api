@@ -13,8 +13,8 @@ use frontend\models\ResetPassword;
 use frontend\models\UserRegister;
 use yii\filters\VerbFilter;
 
-class IdentityController extends \yii\rest\Controller {
-
+class IdentityController extends \yii\rest\Controller
+{
     /**
      * @inheritdoc
      */
