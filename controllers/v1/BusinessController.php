@@ -267,11 +267,13 @@ class BusinessController extends \yii\rest\Controller {
 
             if (!empty($post['hour'])) {
 
+                $postHour = json_decode($post['hour'], true);
+
                 if (!empty($modelBusinessHour->businessHourAdditionals)) {
 
                     foreach ($modelBusinessHour->businessHourAdditionals as $idx => $dataBusinessHourAdditional) {
 
-                        if ((count($post['hour']) - 1) < ($idx + 1)) {
+                        if ((count($postHour) - 1) < ($idx + 1)) {
 
                             if (!($flag = BusinessHourAdditional::deleteAll(['id' => $dataBusinessHourAdditional->id]))) {
 
@@ -281,7 +283,7 @@ class BusinessController extends \yii\rest\Controller {
                     }
                 }
 
-                foreach ($post['hour'] as $i => $hour) {
+                foreach ($postHour as $i => $hour) {
 
                     if ($i == 0) {
 
