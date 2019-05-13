@@ -53,20 +53,25 @@ class BusinessController extends \yii\rest\Controller {
 
             if (!empty($modelBusiness['businessHours'])) {
 
+                $result['success'] = true;
+
                 foreach ($modelBusiness['businessHours'] as $i => $dataBusinessHour) {
 
                     $day = \Yii::t('app', \Yii::$app->params['days'][$i]);
 
-                    $result[$day]['is_open'] = $dataBusinessHour['is_open'];
-                    $result[$day]['hour'][0]['open'] = $dataBusinessHour['open_at'];
-                    $result[$day]['hour'][0]['close'] = $dataBusinessHour['close_at'];
+                    $result['schedule'][$i]['day'] = $day;
+                    $result['schedule'][$i]['is_open'] = $dataBusinessHour['is_open'];
+                    $result['schedule'][$i]['hour'][0]['open'] = $dataBusinessHour['open_at'];
+                    $result['schedule'][$i]['hour'][0]['close'] = $dataBusinessHour['close_at'];
 
                     if (!empty($dataBusinessHour['businessHourAdditionals'])) {
 
-                        foreach ($dataBusinessHour['businessHourAdditionals'] as $i => $dataBusinessHourAdditional) {
+                        foreach ($dataBusinessHour['businessHourAdditionals'] as $dataBusinessHourAdditional) {
 
-                            $result[$day]['hour'][$i + 1]['open'] = $dataBusinessHourAdditional['open_at'];
-                            $result[$day]['hour'][$i + 1]['close'] = $dataBusinessHourAdditional['close_at'];
+                            array_push($result['schedule'][$i]['hour'], [
+                                'open' => $dataBusinessHourAdditional['open_at'],
+                                'close' => $dataBusinessHourAdditional['close_at']
+                            ]);
                         }
                     }
                 }
@@ -106,6 +111,8 @@ class BusinessController extends \yii\rest\Controller {
         if (!empty($model)) {
 
             if (!empty($model['userPerson']['person']['businessContactPeople'])) {
+
+                $result['success'] = true;
 
                 foreach ($model['userPerson']['person']['businessContactPeople'] as $i => $dataBusinessContactPerson) {
 
