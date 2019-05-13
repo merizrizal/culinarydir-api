@@ -61,16 +61,20 @@ class BusinessController extends \yii\rest\Controller {
 
                     $result['schedule'][$i]['day'] = $day;
                     $result['schedule'][$i]['is_open'] = $dataBusinessHour['is_open'];
-                    $result['schedule'][$i]['hour'][0]['open'] = $dataBusinessHour['open_at'];
-                    $result['schedule'][$i]['hour'][0]['close'] = $dataBusinessHour['close_at'];
+                    $result['schedule'][$i]['hour'] = [];
+
+                    array_push($result['schedule'][$i]['hour'], [
+                        'open' => Yii::$app->formatter->asTime($dataBusinessHour['open_at'], 'HH:mm'),
+                        'close' => Yii::$app->formatter->asTime($dataBusinessHour['close_at'], 'HH:mm')
+                    ]);
 
                     if (!empty($dataBusinessHour['businessHourAdditionals'])) {
 
                         foreach ($dataBusinessHour['businessHourAdditionals'] as $dataBusinessHourAdditional) {
 
                             array_push($result['schedule'][$i]['hour'], [
-                                'open' => $dataBusinessHourAdditional['open_at'],
-                                'close' => $dataBusinessHourAdditional['close_at']
+                                'open' => Yii::$app->formatter->asTime($dataBusinessHourAdditional['open_at'], 'HH:mm'),
+                                'close' => Yii::$app->formatter->asTime($dataBusinessHourAdditional['close_at'], 'HH:mm')
                             ]);
                         }
                     }
@@ -345,6 +349,7 @@ class BusinessController extends \yii\rest\Controller {
     private function getTodaysOrder($type)
     {
         $result = [];
+        $result['success'] = false;
 
         \Yii::$app->formatter->timeZone = 'Asia/Jakarta';
 
@@ -369,29 +374,33 @@ class BusinessController extends \yii\rest\Controller {
 
         if (!empty($modelTransactionSession)) {
 
+            $result['success'] = true;
+
             foreach ($modelTransactionSession as $i => $dataTransactionSession) {
+
+                $result['transaction'][$i]['order_id'] = substr($dataTransactionSession['order_id'], 0, 6);
 
                 if (!empty($dataTransactionSession['transactionSessionDelivery'])) {
 
-                    $result[$i]['driver_name'] = $dataTransactionSession['transactionSessionDelivery']['driver']['full_name'];
+                    $result['transaction'][$i]['driver_name'] = $dataTransactionSession['transactionSessionDelivery']['driver']['full_name'];
 
                     if ($type == 'finish') {
 
-                        $result[$i]['upload_receipt_time'] = $dataTransactionSession['transactionSessionDelivery']['updated_at'];
+                        $result['transaction'][$i]['upload_receipt_time'] = $dataTransactionSession['transactionSessionDelivery']['updated_at'];
                     } else {
 
-                        $result[$i]['take_order_time'] = $dataTransactionSession['transactionSessionDelivery']['created_at'];
+                        $result['transaction'][$i]['take_order_time'] = $dataTransactionSession['transactionSessionDelivery']['created_at'];
                     }
                 }
 
-                $result[$i]['menu_format'] = '';
+                $result['transaction'][$i]['menu_format'] = '';
 
                 foreach ($dataTransactionSession['transactionItems'] as $dataTransactionItem) {
 
-                    $result[$i]['menu_format'] .= $dataTransactionItem['businessProduct']['name'] . '(' . $dataTransactionItem['amount'] . '), ';
+                    $result['transaction'][$i]['menu_format'] .= $dataTransactionItem['businessProduct']['name'] . '(' . $dataTransactionItem['amount'] . '), ';
                 }
 
-                $result[$i]['menu_format'] = trim($result[$i]['menu_format'], ', ');
+                $result['transaction'][$i]['menu_format'] = trim($result['transaction'][$i]['menu_format'], ', ');
             }
         } else {
 
