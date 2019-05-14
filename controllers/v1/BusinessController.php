@@ -305,81 +305,98 @@ class BusinessController extends \yii\rest\Controller {
 
             $transaction = Yii::$app->db->beginTransaction();
 
-            if (!empty($post['hour'])) {
+            if ($post['is_open']) {
 
-                $postHour = json_decode($post['hour'], true);
+                if (!empty($post['hour'])) {
 
-                if (!empty($modelBusinessHour->businessHourAdditionals)) {
+                    $postHour = json_decode($post['hour'], true);
 
-                    foreach ($modelBusinessHour->businessHourAdditionals as $idx => $dataBusinessHourAdditional) {
+                    if (!empty($modelBusinessHour->businessHourAdditionals)) {
 
-                        if ((count($postHour) - 1) < ($idx + 1)) {
+                        foreach ($modelBusinessHour->businessHourAdditionals as $idx => $dataBusinessHourAdditional) {
 
-                            if (!($flag = BusinessHourAdditional::deleteAll(['id' => $dataBusinessHourAdditional->id]))) {
+                            if ((count($postHour) - 1) < ($idx + 1)) {
 
-                                break;
+                                if (!($flag = BusinessHourAdditional::deleteAll(['id' => $dataBusinessHourAdditional->id]))) {
+
+                                    break;
+                                }
                             }
                         }
                     }
-                }
 
-                foreach ($postHour as $i => $hour) {
+                    foreach ($postHour as $i => $hour) {
 
-                    if ($i == 0) {
+                        if ($i == 0) {
 
-                        $modelBusinessHour->open_at = $hour['open'];
-                        $modelBusinessHour->close_at = $hour['close'];
+                            $modelBusinessHour->open_at = $hour['open'];
+                            $modelBusinessHour->close_at = $hour['close'];
+                            $modelBusinessHour->is_open = true;
 
-                        if (!($flag = $modelBusinessHour->save())) {
-
-                            break;
-                        }
-                    } else {
-
-                        if (!empty(($modelBusinessHour->businessHourAdditionals[$i - 1]))) {
-
-                            $hourAdditional = $modelBusinessHour->businessHourAdditionals[$i - 1];
-
-                            $hourAdditional->open_at = $hour['open'];
-                            $hourAdditional->close_at = $hour['close'];
-
-                            if (!($flag = $hourAdditional->save())) {
+                            if (!($flag = $modelBusinessHour->save())) {
 
                                 break;
                             }
                         } else {
 
-                            $newModelBusinessHourAdditional = new BusinessHourAdditional();
-                            $newModelBusinessHourAdditional->unique_id = $modelBusinessHour->id . '-' . $post['day'] . '-' . $i;
-                            $newModelBusinessHourAdditional->business_hour_id = $modelBusinessHour->id;
-                            $newModelBusinessHourAdditional->is_open = true;
-                            $newModelBusinessHourAdditional->day = $post['day'];
-                            $newModelBusinessHourAdditional->open_at = $hour['open'];
-                            $newModelBusinessHourAdditional->close_at = $hour['close'];
+                            if (!empty(($modelBusinessHour->businessHourAdditionals[$i - 1]))) {
 
-                            if (!($flag = $newModelBusinessHourAdditional->save())) {
+                                $hourAdditional = $modelBusinessHour->businessHourAdditionals[$i - 1];
 
-                                break;
+                                $hourAdditional->open_at = $hour['open'];
+                                $hourAdditional->close_at = $hour['close'];
+
+                                if (!($flag = $hourAdditional->save())) {
+
+                                    break;
+                                }
+                            } else {
+
+                                $newModelBusinessHourAdditional = new BusinessHourAdditional();
+                                $newModelBusinessHourAdditional->unique_id = $modelBusinessHour->id . '-' . $post['day'] . '-' . $i;
+                                $newModelBusinessHourAdditional->business_hour_id = $modelBusinessHour->id;
+                                $newModelBusinessHourAdditional->is_open = true;
+                                $newModelBusinessHourAdditional->day = $post['day'];
+                                $newModelBusinessHourAdditional->open_at = $hour['open'];
+                                $newModelBusinessHourAdditional->close_at = $hour['close'];
+
+                                if (!($flag = $newModelBusinessHourAdditional->save())) {
+
+                                    break;
+                                }
                             }
                         }
                     }
-                }
-
-                if ($flag) {
-
-                    $transaction->commit();
-
-                    $result['success'] = true;
-                    $result['message'] = 'Update jam operasional berhasil';
                 } else {
 
-                    $transaction->rollback();
-
-                    $result['message'] = 'Update gagal, terjadi kesalahan saat menyimpan data';
+                    $result['message'] = 'Parameter hour tidak ada';
                 }
             } else {
 
-                $result['message'] = 'Parameter hour tidak ada';
+                $modelBusinessHour->is_open = false;
+                $modelBusinessHour->open_at = null;
+                $modelBusinessHour->close_at = null;
+
+                if (($flag = $modelBusinessHour->save())) {
+
+                    if (!empty($modelBusinessHour->businessHourAdditionals)) {
+
+                        $flag = BusinessHourAdditional::deleteAll(['day' => $post['day'], 'business_hour_id' => $modelBusinessHour->id]);
+                    }
+                }
+            }
+
+            if ($flag) {
+
+                $transaction->commit();
+
+                $result['success'] = true;
+                $result['message'] = 'Update jam operasional berhasil';
+            } else {
+
+                $transaction->rollback();
+
+                $result['message'] = 'Update gagal, terjadi kesalahan saat menyimpan data';
             }
         } else {
 
