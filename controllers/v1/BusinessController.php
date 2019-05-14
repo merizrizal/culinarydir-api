@@ -127,39 +127,42 @@ class BusinessController extends \yii\rest\Controller {
                     $result['business'][$i]['email'] = $dataBusinessContactPerson['business']['email'];
                     $result['business'][$i]['address'] = $dataBusinessContactPerson['business']['businessLocation']['address'];
 
-                    if (!empty($dataBusinessContactPerson['business']['businessHours'])) {
+                    if ($dataBusinessContactPerson['business']['is_open']) {
 
-                        foreach ($dataBusinessContactPerson['business']['businessHours'] as $dataBusinessHour) {
+                        if (!empty($dataBusinessContactPerson['business']['businessHours'])) {
 
-                            $day = $days[$dataBusinessHour['day'] - 1];
+                            foreach ($dataBusinessContactPerson['business']['businessHours'] as $dataBusinessHour) {
 
-                            if (date('l') == $day && $dataBusinessHour['is_open']) {
+                                $day = $days[$dataBusinessHour['day'] - 1];
 
-                                $isOpen = $now >= $dataBusinessHour['open_at'] && $now <= $dataBusinessHour['close_at'];
+                                if (date('l') == $day && $dataBusinessHour['is_open']) {
 
-                                if (!$isOpen && !empty($dataBusinessHour['businessHourAdditionals'])) {
+                                    $isOpen = $now >= $dataBusinessHour['open_at'] && $now <= $dataBusinessHour['close_at'];
 
-                                    foreach ($dataBusinessHour['businessHourAdditionals'] as $dataBusinessHourAdditional) {
+                                    if (!$isOpen && !empty($dataBusinessHour['businessHourAdditionals'])) {
 
-                                        $isOpen = $now >= $dataBusinessHourAdditional['open_at'] && $now <= $dataBusinessHourAdditional['close_at'];
+                                        foreach ($dataBusinessHour['businessHourAdditionals'] as $dataBusinessHourAdditional) {
 
-                                        if ($isOpen) {
+                                            $isOpen = $now >= $dataBusinessHourAdditional['open_at'] && $now <= $dataBusinessHourAdditional['close_at'];
 
-                                            break 2;
+                                            if ($isOpen) {
+
+                                                break 2;
+                                            }
                                         }
+                                    } else {
+
+                                        break;
                                     }
                                 } else {
 
-                                    break;
+                                    $isOpen = false;
                                 }
-                            } else {
-
-                                $isOpen = false;
                             }
                         }
-
-                        $result['business'][$i]['is_open'] = $isOpen;
                     }
+
+                    $result['business'][$i]['is_open'] = $isOpen;
                 }
             } else {
 
