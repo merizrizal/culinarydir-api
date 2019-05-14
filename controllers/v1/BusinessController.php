@@ -264,7 +264,7 @@ class BusinessController extends \yii\rest\Controller {
 
         if (!empty($modelBusiness)) {
 
-            $modelBusiness->is_open = \Yii::$app->request->post()['is_open'];
+            $modelBusiness->is_open = strtolower(\Yii::$app->request->post()['is_open']);
 
             if ($modelBusiness->save()) {
 
