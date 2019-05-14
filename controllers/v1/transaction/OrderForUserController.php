@@ -3,8 +3,11 @@
 namespace api\controllers\v1\transaction;
 
 use core\models\PromoItem;
+use core\models\TransactionItem;
 use core\models\TransactionSession;
 use yii\filters\VerbFilter;
+use yii\helpers\ArrayHelper;
+use yii\web\NotFoundHttpException;
 
 class OrderForUserController extends \yii\rest\Controller
 {
@@ -20,7 +23,8 @@ class OrderForUserController extends \yii\rest\Controller
                     'class' => VerbFilter::className(),
                     'actions' => [
                         'transaction-item-list' => ['GET'],
-                        'user-promo-item-list' => ['GET']
+                        'user-promo-item-list' => ['GET'],
+                        'set-item-amount' => ['POST']
                     ],
                 ],
             ]);
@@ -83,5 +87,136 @@ class OrderForUserController extends \yii\rest\Controller
         \Yii::$app->formatter->timeZone = 'UTC';
 
         return $modelPromoItem;
+    }
+
+    public function actionSetItemAmount()
+    {
+        $post = \Yii::$app->request->post();
+
+        $result = [];
+
+        $modelTransactionItem = TransactionItem::find()
+            ->joinWith(['transactionSession'])
+            ->andWhere(['transaction_item.id' => !empty($post['id']) ? $post['id'] : null])
+            ->one();
+
+        if (empty($modelTransactionItem)) {
+
+            throw new NotFoundHttpException('The requested page does not exist.');
+        }
+
+        $transaction = \Yii::$app->db->beginTransaction();
+        $flag = false;
+
+        $amountPrior = $modelTransactionItem->amount;
+        $modelTransactionItem->amount = $post['amount'];
+        $totalAmount = $post['amount'] - $amountPrior;
+
+        if (($flag = $modelTransactionItem->save())) {
+
+            $modelTransactionSession = $modelTransactionItem->transactionSession;
+            $modelTransactionSession->total_amount += $totalAmount;
+            $modelTransactionSession->total_price += $modelTransactionItem->price * $totalAmount;
+
+            if (!($flag = $modelTransactionSession->save())) {
+
+                $result['error'] = $modelTransactionSession->getErrors();
+            }
+        } else {
+
+            $result['error'] = $modelTransactionItem->getErrors();
+        }
+
+        if ($flag) {
+
+            $transaction->commit();
+
+            $result['success'] = true;
+            $result['amount'] = $modelTransactionItem->amount;
+        } else {
+
+            $transaction->rollBack();
+
+            $result['success'] = false;
+            $result['amount'] = $amountPrior;
+        }
+
+        return $result;
+    }
+
+    public function actionRemoveItem()
+    {
+        $post = \Yii::$app->request->post();
+
+        $modelTransactionItem = TransactionItem::find()
+            ->joinWith(['transactionSession'])
+            ->andWhere(['transaction_item.id' => !empty($post['id']) ? $post['id'] : null])
+            ->one();
+
+        if (empty($modelTransactionItem)) {
+
+            throw new NotFoundHttpException('The requested page does not exist.');
+        }
+
+        $transaction = \Yii::$app->db->beginTransaction();
+        $flag = false;
+
+        $modelTransactionSession = $modelTransactionItem->transactionSession;
+        $modelTransactionSession->total_amount -= $modelTransactionItem->amount;
+        $modelTransactionSession->total_price -= $modelTransactionItem->price * $modelTransactionItem->amount;
+
+        if ($modelTransactionSession->total_amount == 0) {
+
+            $flag = $modelTransactionItem->delete() && $modelTransactionSession->delete();
+        } else {
+
+            $flag = $modelTransactionItem->delete() && $modelTransactionSession->save();
+        }
+
+        $result = [];
+
+        if ($flag) {
+
+            $transaction->commit();
+
+            $result['success'] = true;
+        } else {
+
+            $transaction->rollBack();
+
+            $result['success'] = false;
+            $result['error'] = ArrayHelper::merge($modelTransactionItem->getErrors(), $modelTransactionSession->getErrors());
+        }
+
+        return $result;
+    }
+
+    public function actionSetNotes()
+    {
+        $post = \Yii::$app->request->post();
+
+        $result = [];
+
+        $modelTransactionItem = TransactionItem::find()
+            ->andWhere(['transaction_item.id' => !empty($post['id']) ? $post['id'] : null])
+            ->one();
+
+        if (empty($modelTransactionItem)) {
+
+            throw new NotFoundHttpException('The requested page does not exist.');
+        }
+
+        $modelTransactionItem->note = !empty($post['note']) ? $post['note'] : null;
+
+        if ($modelTransactionItem->save()) {
+
+            $result['success'] = true;
+        } else {
+
+            $result['success'] = false;
+            $result['error'] = $modelTransactionItem->getErrors();
+        }
+
+        return $result;
     }
 }
