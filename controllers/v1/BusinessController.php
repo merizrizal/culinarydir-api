@@ -284,9 +284,12 @@ class BusinessController extends \yii\rest\Controller {
 
     public function actionUpdateOperationalHours()
     {
-        $result = [];
         $flag = false;
+
+        $result = [];
+
         $result['success'] = false;
+        $result['message'] = 'Update gagal, terjadi kesalahan saat menyimpan data';
 
         $post = \Yii::$app->request->post();
 
@@ -305,7 +308,7 @@ class BusinessController extends \yii\rest\Controller {
 
             $transaction = Yii::$app->db->beginTransaction();
 
-            if ($post['is_open']) {
+            if ($post['is_open'] && strtolower($post['is_open']) == "true") {
 
                 if (!empty($post['hour'])) {
 
@@ -395,8 +398,6 @@ class BusinessController extends \yii\rest\Controller {
             } else {
 
                 $transaction->rollback();
-
-                $result['message'] = 'Update gagal, terjadi kesalahan saat menyimpan data';
             }
         } else {
 
