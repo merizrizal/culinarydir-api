@@ -186,51 +186,19 @@ class BusinessController extends \yii\rest\Controller {
     public function actionUpdateOpenStatus()
     {
         $result = [];
-        $flag = false;
         $result['success'] = false;
 
-        $modelBusinessHour = BusinessHour::find()
-            ->joinWith(['businessHourAdditionals'])
-            ->andWhere(['business_hour.business_id' => \Yii::$app->request->post()['business_id']])
-            ->all();
+        $modelBusiness = Business::findOne(['id' => \Yii::$app->request->post()['business_id']]);
 
-        if (!empty($modelBusinessHour)) {
+        if (!empty($modelBusiness)) {
 
-            $transaction = \Yii::$app->db->beginTransaction();
+            $modelBusiness->is_open = \Yii::$app->request->post()['is_open'];
 
-            foreach ($modelBusinessHour as $dataBusinessHour) {
-
-                $dataBusinessHour->is_open = \Yii::$app->request->post()['is_open'];
-
-                if (!($flag = $dataBusinessHour->save())) {
-
-                    break;
-                } else {
-
-                    if (!empty($dataBusinessHour->businessHourAdditionals)) {
-
-                        foreach ($dataBusinessHour->businessHourAdditionals as $dataBusinessHourAdditional) {
-
-                            $dataBusinessHourAdditional->is_open = $dataBusinessHour->is_open;
-
-                            if (!($flag = $dataBusinessHourAdditional->save())) {
-
-                                break 2;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if ($flag) {
-
-                $transaction->commit();
+            if ($modelBusiness->save()) {
 
                 $result['success'] = true;
                 $result['message'] = 'Update Status buka/tutup berhasil';
             } else {
-
-                $transaction->rollback();
 
                 $result['message'] = 'Update Status buka/tutup gagal, terdapat kesalahan saat menyimpan data';
             }
