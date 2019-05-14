@@ -95,15 +95,7 @@ class BusinessController extends \yii\rest\Controller {
     public function actionGetBranch()
     {
         $result = [];
-
-        $days = \Yii::$app->params['days'];
-        $isOpen = false;
-
-        \Yii::$app->formatter->timeZone = 'Asia/Jakarta';
-
-        $now = \Yii::$app->formatter->asTime(time());
-
-        \Yii::$app->formatter->timeZone = 'UTC';
+        $result['success'] = false;
 
         $model = User::find()
             ->joinWith([
@@ -119,7 +111,17 @@ class BusinessController extends \yii\rest\Controller {
 
                 $result['success'] = true;
 
+                $days = \Yii::$app->params['days'];
+
+                \Yii::$app->formatter->timeZone = 'Asia/Jakarta';
+
+                $now = \Yii::$app->formatter->asTime(time());
+
+                \Yii::$app->formatter->timeZone = 'UTC';
+
                 foreach ($model['userPerson']['person']['businessContactPeople'] as $i => $dataBusinessContactPerson) {
+
+                    $isOpen = false;
 
                     $result['business'][$i]['id'] = $dataBusinessContactPerson['business_id'];
                     $result['business'][$i]['name'] = $dataBusinessContactPerson['business']['name'];
@@ -192,13 +194,59 @@ class BusinessController extends \yii\rest\Controller {
         $result['success'] = false;
 
         $modelBusiness = Business::find()
-            ->andWhere(['id' => \Yii::$app->request->post()['business_id']])
+            ->joinWith(['businessHours.businessHourAdditionals'])
+            ->andWhere(['business.id' => \Yii::$app->request->post()['business_id']])
             ->asArray()->one();
 
         if (!empty($modelBusiness)) {
 
             $result['success'] = true;
-            $result['is_open'] = $modelBusiness['is_open'];
+            $isOpen = false;
+
+            $days = \Yii::$app->params['days'];
+
+            \Yii::$app->formatter->timeZone = 'Asia/Jakarta';
+
+            $now = \Yii::$app->formatter->asTime(time());
+
+            \Yii::$app->formatter->timeZone = 'UTC';
+
+            if ($modelBusiness['is_open']) {
+
+                if (!empty($modelBusiness['businessHours'])) {
+
+                    foreach ($modelBusiness['businessHours'] as $dataBusinessHour) {
+
+                        $day = $days[$dataBusinessHour['day'] - 1];
+
+                        if (date('l') == $day && $dataBusinessHour['is_open']) {
+
+                            $isOpen = $now >= $dataBusinessHour['open_at'] && $now <= $dataBusinessHour['close_at'];
+
+                            if (!$isOpen && !empty($dataBusinessHour['businessHourAdditionals'])) {
+
+                                foreach ($dataBusinessHour['businessHourAdditionals'] as $dataBusinessHourAdditional) {
+
+                                    $isOpen = $now >= $dataBusinessHourAdditional['open_at'] && $now <= $dataBusinessHourAdditional['close_at'];
+
+                                    if ($isOpen) {
+
+                                        break 2;
+                                    }
+                                }
+                            } else {
+
+                                break;
+                            }
+                        } else {
+
+                            $isOpen = false;
+                        }
+                    }
+                }
+            }
+
+            $result['is_open'] = $isOpen;
         } else {
 
             $result['message'] = 'Business ID tidak ditemukan';
