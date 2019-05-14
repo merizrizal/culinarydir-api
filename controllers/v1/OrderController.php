@@ -82,6 +82,11 @@ class OrderController extends \yii\rest\Controller
                 $result['customer_phone'] = $modelTransactionSession['userOrdered']['userPerson']['person']['phone'];
                 $result['driver_name'] = $modelUserDriver['full_name'];
                 $result['driver_phone'] = $modelUserDriver['userPerson']['person']['phone'];
+
+                if (!empty($modelTransactionSession['transactionSessionDelivery'])) {
+
+                    $result['total_delivery_fee'] = $modelTransactionSession['transactionSessionDelivery']['total_delivery_fee'];
+                }
             } else {
 
                 $result['message'] = 'Order Detail tidak ditemukan';
