@@ -186,6 +186,27 @@ class BusinessController extends \yii\rest\Controller {
         return $this->getTodaysOrder('on-progress');
     }
 
+    public function actionGetOpenStatus()
+    {
+        $result = [];
+        $result['success'] = false;
+
+        $modelBusiness = Business::find()
+            ->andWhere(['id' => \Yii::$app->request->post()['business_id']])
+            ->asArray()->one();
+
+        if (!empty($modelBusiness)) {
+
+            $result['success'] = true;
+            $result['is_open'] = $modelBusiness['is_open'];
+        } else {
+
+            $result['message'] = 'Business ID tidak ditemukan';
+        }
+
+        return $result;
+    }
+
     public function actionUpdateOpenStatus()
     {
         $result = [];
