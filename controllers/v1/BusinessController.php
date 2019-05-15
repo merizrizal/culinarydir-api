@@ -339,6 +339,26 @@ class BusinessController extends \yii\rest\Controller
         return $result;
     }
 
+    public function actionDeliveryList($id)
+    {
+        $model = BusinessDelivery::find()
+            ->select(['id', 'note', 'description'])
+            ->andWhere(['business_id' => $id])
+            ->asArray()->all();
+
+        return $model;
+    }
+
+    public function actionPaymentList($id)
+    {
+        $model = BusinessPayment::find()
+            ->select(['id', 'note', 'description'])
+            ->andWhere(['business_id' => $id])
+            ->asArray()->all();
+
+        return $model;
+    }
+
     private function getTodaysOrder($type)
     {
         $result = [];
@@ -445,25 +465,5 @@ class BusinessController extends \yii\rest\Controller
         }
 
         return $isOpen;
-    }
-
-    public function actionDeliveryList($id)
-    {
-        $model = BusinessDelivery::find()
-            ->select(['id', 'note', 'description'])
-            ->andWhere(['business_id' => $id])
-            ->asArray()->all();
-
-        return $model;
-    }
-
-    public function actionPaymentList($id)
-    {
-        $model = BusinessPayment::find()
- 			->select(['id', 'note', 'description'])
-     		->andWhere(['business_id' => $id])
-        	->asArray()->all();
-
-        return $model;
     }
 }
