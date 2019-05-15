@@ -444,7 +444,8 @@ class OrderController extends \yii\rest\Controller
                         'status' =>  $dataTransactionSession['status'],
                         'delivery_fee' => $dataTransactionSession['transactionSessionDelivery']['total_delivery_fee'],
                         'transaction_time' => \Yii::$app->formatter->asTime($dataTransactionSession['updated_at'], 'HH:mm'),
-                        'business_name' => $dataTransactionSession['business']['name']
+                        'business_name' => $dataTransactionSession['business']['name'],
+                        'order_id' => substr($dataTransactionSession['order_id'], 0, 6)
                     ]);
                 } else {
 
@@ -452,8 +453,10 @@ class OrderController extends \yii\rest\Controller
 
                         array_push($result['order'], [
                             'status' => $dataTransactionSession['status'],
+                            'delivery_fee' => 0,
                             'transaction_time' => \Yii::$app->formatter->asTime($dataTransactionCanceled['created_at'], 'HH:mm'),
-                            'business_name' => $dataTransactionSession['business']['name']
+                            'business_name' => $dataTransactionSession['business']['name'],
+                            'order_id' => substr($dataTransactionSession['order_id'], 0, 6)
                         ]);
                     }
                 }
