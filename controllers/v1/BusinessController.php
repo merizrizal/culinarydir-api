@@ -9,9 +9,11 @@ use Yii;
 use yii\filters\VerbFilter;
 use core\models\TransactionSession;
 use core\models\BusinessHourAdditional;
+use core\models\BusinessDelivery;
+use core\models\BusinessPayment;
 
-class BusinessController extends \yii\rest\Controller {
-
+class BusinessController extends \yii\rest\Controller
+{
     /**
      * @inheritdoc
      */
@@ -28,7 +30,9 @@ class BusinessController extends \yii\rest\Controller {
                         'get-finish-order' => ['POST'],
                         'get-on-progress-order' => ['POST'],
                         'update-open-status' => ['POST'],
-                        'update-operational-hours' => ['POST']
+                        'update-operational-hours' => ['POST'],
+                        'delivery-list' => ['GET'],
+                        'payment-list' => ['GET']
                     ],
                 ],
             ]);
@@ -469,5 +473,25 @@ class BusinessController extends \yii\rest\Controller {
         }
 
         return $result;
+    }
+
+    public function actionDeliveryList($id)
+    {
+        $model = BusinessDelivery::find()
+            ->select(['id', 'note', 'description'])
+            ->andWhere(['business_id' => $id])
+            ->asArray()->all();
+
+        return $model;
+    }
+
+    public function actionPaymentList($id)
+    {
+        $model = BusinessPayment::find()
+        ->select(['id', 'note', 'description'])
+        ->andWhere(['business_id' => $id])
+        ->asArray()->all();
+
+        return $model;
     }
 }
