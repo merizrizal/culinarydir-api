@@ -72,6 +72,7 @@ class IdentityController extends \yii\rest\Controller
             $result['user_id'] = $model->getUser()->id;
             $result['username'] = $model->getUser()->username;
             $result['login_token'] = $model->getUser()->login_token;
+            $result['phone'] = $model->getUser()->userPerson->person->phone;
         } else {
 
             $result['success'] = false;
