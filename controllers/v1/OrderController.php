@@ -31,7 +31,8 @@ class OrderController extends \yii\rest\Controller
                         'cancel-order' => ['POST'],
                         'send-order' => ['POST'],
                         'finish-order' => ['POST'],
-                        'calculate-delivery-fee' => ['POST']
+                        'calculate-delivery-fee' => ['POST'],
+                        'get-list-order-by-driver' => ['POST']
                     ],
                 ],
             ]);
@@ -403,7 +404,7 @@ class OrderController extends \yii\rest\Controller
 
     }
 
-    public function actionListOrderByDriver()
+    public function actionGetListOrderByDriver()
     {
         $result = [];
         $result['success'] = false;
@@ -428,6 +429,7 @@ class OrderController extends \yii\rest\Controller
 
             $result['success'] = true;
             $result['total_income'] = 0;
+            $result['total_order'] = 0;
 
             $result['order'] = [];
 
@@ -436,6 +438,7 @@ class OrderController extends \yii\rest\Controller
                 if ($dataTransactionSession['status'] == 'Finish') {
 
                     $result['total_income'] += $dataTransactionSession['transactionSessionDelivery']['total_delivery_fee'];
+                    $result['total_order'] += 1;
 
                     array_push($result['order'], [
                         'status' =>  $dataTransactionSession['status'],
