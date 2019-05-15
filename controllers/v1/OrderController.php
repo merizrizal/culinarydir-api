@@ -31,6 +31,7 @@ class OrderController extends \yii\rest\Controller
                         'cancel-order' => ['POST'],
                         'send-order' => ['POST'],
                         'finish-order' => ['POST'],
+                        'new-order' => ['POST'],
                         'calculate-delivery-fee' => ['POST'],
                         'get-list-order-by-driver' => ['POST']
                     ],
@@ -394,6 +395,20 @@ class OrderController extends \yii\rest\Controller
         if (!empty(\Yii::$app->request->post()['order_id'])) {
 
             $result['success'] = $this->updateStatusOrder(\Yii::$app->request->post()['order_id'], 'Finish');
+        }
+
+        return $result;
+    }
+
+    public function actionNewOrder()
+    {
+        $result = [];
+
+        $result['success'] = false;
+
+        if (!empty(\Yii::$app->request->post()['order_id'])) {
+
+            $result['success'] = $this->updateStatusOrder(\Yii::$app->request->post()['order_id'], 'New');
         }
 
         return $result;
