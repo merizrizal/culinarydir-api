@@ -29,6 +29,7 @@ class BusinessController extends \yii\rest\Controller
                         'get-branch' => ['POST'],
                         'get-finish-order' => ['POST'],
                         'get-on-progress-order' => ['POST'],
+                        'get-open-status' => ['POST'],
                         'update-open-status' => ['POST'],
                         'update-operational-hours' => ['POST'],
                         'delivery-list' => ['GET'],
@@ -115,17 +116,7 @@ class BusinessController extends \yii\rest\Controller
 
                 $result['success'] = true;
 
-                $days = \Yii::$app->params['days'];
-
-                \Yii::$app->formatter->timeZone = 'Asia/Jakarta';
-
-                $now = \Yii::$app->formatter->asTime(time());
-
-                \Yii::$app->formatter->timeZone = 'UTC';
-
                 foreach ($model['userPerson']['person']['businessContactPeople'] as $i => $dataBusinessContactPerson) {
-
-                    $isOpen = false;
 
                     $result['business'][$i]['id'] = $dataBusinessContactPerson['business_id'];
                     $result['business'][$i]['name'] = $dataBusinessContactPerson['business']['name'];
@@ -133,42 +124,15 @@ class BusinessController extends \yii\rest\Controller
                     $result['business'][$i]['email'] = $dataBusinessContactPerson['business']['email'];
                     $result['business'][$i]['address'] = $dataBusinessContactPerson['business']['businessLocation']['address'];
 
+                    $result['business'][$i]['is_open'] = false;
+
                     if ($dataBusinessContactPerson['business']['is_open']) {
 
                         if (!empty($dataBusinessContactPerson['business']['businessHours'])) {
 
-                            foreach ($dataBusinessContactPerson['business']['businessHours'] as $dataBusinessHour) {
-
-                                $day = $days[$dataBusinessHour['day'] - 1];
-
-                                if (date('l') == $day && $dataBusinessHour['is_open']) {
-
-                                    $isOpen = $now >= $dataBusinessHour['open_at'] && $now <= $dataBusinessHour['close_at'];
-
-                                    if (!$isOpen && !empty($dataBusinessHour['businessHourAdditionals'])) {
-
-                                        foreach ($dataBusinessHour['businessHourAdditionals'] as $dataBusinessHourAdditional) {
-
-                                            $isOpen = $now >= $dataBusinessHourAdditional['open_at'] && $now <= $dataBusinessHourAdditional['close_at'];
-
-                                            if ($isOpen) {
-
-                                                break 2;
-                                            }
-                                        }
-                                    } else {
-
-                                        break;
-                                    }
-                                } else {
-
-                                    $isOpen = false;
-                                }
-                            }
+                            $result['business'][$i]['is_open'] = $this->checkOpenStatus($dataBusinessContactPerson['business']['businessHours']);
                         }
                     }
-
-                    $result['business'][$i]['is_open'] = $isOpen;
                 }
             } else {
 
@@ -202,55 +166,19 @@ class BusinessController extends \yii\rest\Controller
             ->andWhere(['business.id' => \Yii::$app->request->post()['business_id']])
             ->asArray()->one();
 
+        $result['is_open'] = false;
+
         if (!empty($modelBusiness)) {
 
             $result['success'] = true;
-            $isOpen = false;
-
-            $days = \Yii::$app->params['days'];
-
-            \Yii::$app->formatter->timeZone = 'Asia/Jakarta';
-
-            $now = \Yii::$app->formatter->asTime(time());
-
-            \Yii::$app->formatter->timeZone = 'UTC';
 
             if ($modelBusiness['is_open']) {
 
                 if (!empty($modelBusiness['businessHours'])) {
 
-                    foreach ($modelBusiness['businessHours'] as $dataBusinessHour) {
-
-                        $day = $days[$dataBusinessHour['day'] - 1];
-
-                        if (date('l') == $day && $dataBusinessHour['is_open']) {
-
-                            $isOpen = $now >= $dataBusinessHour['open_at'] && $now <= $dataBusinessHour['close_at'];
-
-                            if (!$isOpen && !empty($dataBusinessHour['businessHourAdditionals'])) {
-
-                                foreach ($dataBusinessHour['businessHourAdditionals'] as $dataBusinessHourAdditional) {
-
-                                    $isOpen = $now >= $dataBusinessHourAdditional['open_at'] && $now <= $dataBusinessHourAdditional['close_at'];
-
-                                    if ($isOpen) {
-
-                                        break 2;
-                                    }
-                                }
-                            } else {
-
-                                break;
-                            }
-                        } else {
-
-                            $isOpen = false;
-                        }
-                    }
+                    $result['is_open'] = $this->checkOpenStatus($modelBusiness['businessHours']);
                 }
             }
-
-            $result['is_open'] = $isOpen;
         } else {
 
             $result['message'] = 'Business ID tidak ditemukan';
@@ -268,7 +196,7 @@ class BusinessController extends \yii\rest\Controller
 
         if (!empty($modelBusiness)) {
 
-            $modelBusiness->is_open = strtolower(\Yii::$app->request->post()['is_open']);
+            $modelBusiness->is_open = strtolower(\Yii::$app->request->post()['is_open']) == 'true' ? true : false;
 
             if ($modelBusiness->save()) {
 
@@ -475,6 +403,50 @@ class BusinessController extends \yii\rest\Controller
         return $result;
     }
 
+    private function checkOpenStatus($modelBusinessHour)
+    {
+        $isOpen = false;
+
+        $days = \Yii::$app->params['days'];
+
+        \Yii::$app->formatter->timeZone = 'Asia/Jakarta';
+
+        $now = \Yii::$app->formatter->asTime(time());
+
+        \Yii::$app->formatter->timeZone = 'UTC';
+
+        foreach ($modelBusinessHour as $dataBusinessHour) {
+
+            $day = $days[$dataBusinessHour['day'] - 1];
+
+            if (date('l') == $day && $dataBusinessHour['is_open']) {
+
+                $isOpen = $now >= $dataBusinessHour['open_at'] && $now <= $dataBusinessHour['close_at'];
+
+                if (!$isOpen && !empty($dataBusinessHour['businessHourAdditionals'])) {
+
+                    foreach ($dataBusinessHour['businessHourAdditionals'] as $dataBusinessHourAdditional) {
+
+                        $isOpen = $now >= $dataBusinessHourAdditional['open_at'] && $now <= $dataBusinessHourAdditional['close_at'];
+
+                        if ($isOpen) {
+
+                            break 2;
+                        }
+                    }
+                } else {
+
+                    break;
+                }
+            } else {
+
+                $isOpen = false;
+            }
+        }
+
+        return $isOpen;
+    }
+
     public function actionDeliveryList($id)
     {
         $model = BusinessDelivery::find()
@@ -488,9 +460,9 @@ class BusinessController extends \yii\rest\Controller
     public function actionPaymentList($id)
     {
         $model = BusinessPayment::find()
-        ->select(['id', 'note', 'description'])
-        ->andWhere(['business_id' => $id])
-        ->asArray()->all();
+ 			->select(['id', 'note', 'description'])
+     		->andWhere(['business_id' => $id])
+        	->asArray()->all();
 
         return $model;
     }
