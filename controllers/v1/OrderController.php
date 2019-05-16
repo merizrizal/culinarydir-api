@@ -426,59 +426,65 @@ class OrderController extends \yii\rest\Controller
 
         $post = \Yii::$app->request->post();
 
-        $modelTransactionSession = TransactionSession::find()
-            ->joinWith([
-                'business',
-                'transactionSessionDelivery',
-                'transactionCanceledByDrivers' => function ($query) use ($post) {
+        if (!empty($post['order_date']) && !empty($post['driver_id'])) {
 
-                    $query->andOnCondition(['transaction_canceled_by_driver.driver_id' => $post['driver_id']]);
-                }
-            ])
-            ->andWhere(['date(transaction_session.created_at)' => $post['order_date']])
-            ->andWhere(['transaction_session_delivery.driver_id' => $post['driver_id']])
-            ->andWhere(['transaction_session.status' => ['Finish', 'Cancel']])
-            ->asArray()->all();
+            $modelTransactionSession = TransactionSession::find()
+                ->joinWith([
+                    'business',
+                    'transactionSessionDelivery',
+                    'transactionCanceledByDrivers' => function ($query) use ($post) {
 
-        if (!empty($modelTransactionSession)) {
+                        $query->andOnCondition(['transaction_canceled_by_driver.driver_id' => $post['driver_id']]);
+                    }
+                ])
+                ->andWhere(['date(transaction_session.created_at)' => $post['order_date']])
+                ->andWhere(['transaction_session_delivery.driver_id' => $post['driver_id']])
+                ->andWhere(['transaction_session.status' => ['Finish', 'Cancel']])
+                ->asArray()->all();
 
-            $result['success'] = true;
-            $result['total_income'] = 0;
-            $result['total_order'] = 0;
+            if (!empty($modelTransactionSession)) {
 
-            $result['order'] = [];
+                $result['success'] = true;
+                $result['total_income'] = 0;
+                $result['total_order'] = 0;
 
-            foreach ($modelTransactionSession as $dataTransactionSession) {
+                $result['order'] = [];
 
-                if ($dataTransactionSession['status'] == 'Finish') {
+                foreach ($modelTransactionSession as $dataTransactionSession) {
 
-                    $result['total_income'] += $dataTransactionSession['transactionSessionDelivery']['total_delivery_fee'];
-                    $result['total_order'] += 1;
+                    if ($dataTransactionSession['status'] == 'Finish') {
 
-                    array_push($result['order'], [
-                        'status' =>  $dataTransactionSession['status'],
-                        'delivery_fee' => $dataTransactionSession['transactionSessionDelivery']['total_delivery_fee'],
-                        'transaction_time' => \Yii::$app->formatter->asTime($dataTransactionSession['updated_at'], 'HH:mm'),
-                        'business_name' => $dataTransactionSession['business']['name'],
-                        'order_id' => substr($dataTransactionSession['order_id'], 0, 6)
-                    ]);
-                } else {
-
-                    foreach ($dataTransactionSession['transactionCanceledByDrivers'] as $dataTransactionCanceled) {
+                        $result['total_income'] += $dataTransactionSession['transactionSessionDelivery']['total_delivery_fee'];
+                        $result['total_order'] += 1;
 
                         array_push($result['order'], [
-                            'status' => $dataTransactionSession['status'],
-                            'delivery_fee' => 0,
-                            'transaction_time' => \Yii::$app->formatter->asTime($dataTransactionCanceled['created_at'], 'HH:mm'),
+                            'status' =>  $dataTransactionSession['status'],
+                            'delivery_fee' => $dataTransactionSession['transactionSessionDelivery']['total_delivery_fee'],
+                            'transaction_time' => \Yii::$app->formatter->asTime($dataTransactionSession['updated_at'], 'HH:mm'),
                             'business_name' => $dataTransactionSession['business']['name'],
                             'order_id' => substr($dataTransactionSession['order_id'], 0, 6)
                         ]);
+                    } else {
+
+                        foreach ($dataTransactionSession['transactionCanceledByDrivers'] as $dataTransactionCanceled) {
+
+                            array_push($result['order'], [
+                                'status' => $dataTransactionSession['status'],
+                                'delivery_fee' => 0,
+                                'transaction_time' => \Yii::$app->formatter->asTime($dataTransactionCanceled['created_at'], 'HH:mm'),
+                                'business_name' => $dataTransactionSession['business']['name'],
+                                'order_id' => substr($dataTransactionSession['order_id'], 0, 6)
+                            ]);
+                        }
                     }
                 }
+            } else {
+
+                $result['message'] = 'Transaksi tidak ditemukan';
             }
         } else {
 
-            $result['message'] = 'Transaksi tidak ditemukan';
+            $result['message'] = 'Parameter order_date & order_id tidak boleh kosong';
         }
 
         return $result;

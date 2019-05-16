@@ -42,56 +42,63 @@ class BusinessController extends \yii\rest\Controller
     public function actionGetOperationalHours()
     {
         $result = [];
+        $result['success'] = false;
 
-        $modelBusiness = Business::find()
-            ->joinWith([
-                'businessHours' => function ($query) {
+        if (!empty(\Yii::$app->request->post()['business_id'])) {
 
-                    $query->orderBy(['business_hour.day' => SORT_ASC]);
-                },
-                'businessHours.businessHourAdditionals'
-            ])
-            ->andWhere(['business.id' => \Yii::$app->request->post()['business_id']])
-            ->asArray()->one();
+            $modelBusiness = Business::find()
+                ->joinWith([
+                    'businessHours' => function ($query) {
 
-        if (!empty($modelBusiness)) {
+                        $query->orderBy(['business_hour.day' => SORT_ASC]);
+                    },
+                    'businessHours.businessHourAdditionals'
+                ])
+                ->andWhere(['business.id' => \Yii::$app->request->post()['business_id']])
+                ->asArray()->one();
 
-            if (!empty($modelBusiness['businessHours'])) {
+            if (!empty($modelBusiness)) {
 
-                $result['success'] = true;
+                if (!empty($modelBusiness['businessHours'])) {
 
-                foreach ($modelBusiness['businessHours'] as $i => $dataBusinessHour) {
+                    $result['success'] = true;
 
-                    $day = \Yii::t('app', \Yii::$app->params['days'][$dataBusinessHour['day'] - 1]);
+                    foreach ($modelBusiness['businessHours'] as $i => $dataBusinessHour) {
 
-                    $result['schedule'][$i]['day_id'] = $dataBusinessHour['day'];
-                    $result['schedule'][$i]['day'] = $day;
-                    $result['schedule'][$i]['is_open'] = $dataBusinessHour['is_open'];
-                    $result['schedule'][$i]['hour'] = [];
+                        $day = \Yii::t('app', \Yii::$app->params['days'][$dataBusinessHour['day'] - 1]);
 
-                    array_push($result['schedule'][$i]['hour'], [
-                        'open' => Yii::$app->formatter->asTime($dataBusinessHour['open_at'], 'HH:mm'),
-                        'close' => Yii::$app->formatter->asTime($dataBusinessHour['close_at'], 'HH:mm')
-                    ]);
+                        $result['schedule'][$i]['day_id'] = $dataBusinessHour['day'];
+                        $result['schedule'][$i]['day'] = $day;
+                        $result['schedule'][$i]['is_open'] = $dataBusinessHour['is_open'];
+                        $result['schedule'][$i]['hour'] = [];
 
-                    if (!empty($dataBusinessHour['businessHourAdditionals'])) {
+                        array_push($result['schedule'][$i]['hour'], [
+                            'open' => Yii::$app->formatter->asTime($dataBusinessHour['open_at'], 'HH:mm'),
+                            'close' => Yii::$app->formatter->asTime($dataBusinessHour['close_at'], 'HH:mm')
+                        ]);
 
-                        foreach ($dataBusinessHour['businessHourAdditionals'] as $dataBusinessHourAdditional) {
+                        if (!empty($dataBusinessHour['businessHourAdditionals'])) {
 
-                            array_push($result['schedule'][$i]['hour'], [
-                                'open' => Yii::$app->formatter->asTime($dataBusinessHourAdditional['open_at'], 'HH:mm'),
-                                'close' => Yii::$app->formatter->asTime($dataBusinessHourAdditional['close_at'], 'HH:mm')
-                            ]);
+                            foreach ($dataBusinessHour['businessHourAdditionals'] as $dataBusinessHourAdditional) {
+
+                                array_push($result['schedule'][$i]['hour'], [
+                                    'open' => Yii::$app->formatter->asTime($dataBusinessHourAdditional['open_at'], 'HH:mm'),
+                                    'close' => Yii::$app->formatter->asTime($dataBusinessHourAdditional['close_at'], 'HH:mm')
+                                ]);
+                            }
                         }
                     }
+                } else {
+
+                    $result['message'] = 'Tidak ada jam operasional';
                 }
             } else {
 
-                $result['message'] = 'Tidak ada jam operasional';
+                $result['message'] = 'Business ID tidak ditemukan';
             }
         } else {
 
-            $result['message'] = 'Business ID tidak ditemukan';
+            $result['message'] = 'Parameter business_id tidak boleh kosong';
         }
 
         return $result;
@@ -102,45 +109,51 @@ class BusinessController extends \yii\rest\Controller
         $result = [];
         $result['success'] = false;
 
-        $model = User::find()
-            ->joinWith([
-                'userPerson.person.businessContactPeople.business.businessLocation',
-                'userPerson.person.businessContactPeople.business.businessHours.businessHourAdditionals'
-            ])
-            ->andWhere(['user.id' => \Yii::$app->request->post()['user_id']])
-            ->asArray()->one();
+        if (!empty(\Yii::$app->request->post()['user_id'])) {
 
-        if (!empty($model)) {
+            $model = User::find()
+                ->joinWith([
+                    'userPerson.person.businessContactPeople.business.businessLocation',
+                    'userPerson.person.businessContactPeople.business.businessHours.businessHourAdditionals'
+                ])
+                ->andWhere(['user.id' => \Yii::$app->request->post()['user_id']])
+                ->asArray()->one();
 
-            if (!empty($model['userPerson']['person']['businessContactPeople'])) {
+            if (!empty($model)) {
 
-                $result['success'] = true;
+                if (!empty($model['userPerson']['person']['businessContactPeople'])) {
 
-                foreach ($model['userPerson']['person']['businessContactPeople'] as $i => $dataBusinessContactPerson) {
+                    $result['success'] = true;
 
-                    $result['business'][$i]['id'] = $dataBusinessContactPerson['business_id'];
-                    $result['business'][$i]['name'] = $dataBusinessContactPerson['business']['name'];
-                    $result['business'][$i]['phone'] = $dataBusinessContactPerson['business']['phone3'];
-                    $result['business'][$i]['email'] = $dataBusinessContactPerson['business']['email'];
-                    $result['business'][$i]['address'] = $dataBusinessContactPerson['business']['businessLocation']['address'];
+                    foreach ($model['userPerson']['person']['businessContactPeople'] as $i => $dataBusinessContactPerson) {
 
-                    $result['business'][$i]['is_open'] = false;
+                        $result['business'][$i]['id'] = $dataBusinessContactPerson['business_id'];
+                        $result['business'][$i]['name'] = $dataBusinessContactPerson['business']['name'];
+                        $result['business'][$i]['phone'] = $dataBusinessContactPerson['business']['phone3'];
+                        $result['business'][$i]['email'] = $dataBusinessContactPerson['business']['email'];
+                        $result['business'][$i]['address'] = $dataBusinessContactPerson['business']['businessLocation']['address'];
 
-                    if ($dataBusinessContactPerson['business']['is_open']) {
+                        $result['business'][$i]['is_open'] = false;
 
-                        if (!empty($dataBusinessContactPerson['business']['businessHours'])) {
+                        if ($dataBusinessContactPerson['business']['is_open']) {
 
-                            $result['business'][$i]['is_open'] = $this->checkOpenStatus($dataBusinessContactPerson['business']['businessHours']);
+                            if (!empty($dataBusinessContactPerson['business']['businessHours'])) {
+
+                                $result['business'][$i]['is_open'] = $this->checkOpenStatus($dataBusinessContactPerson['business']['businessHours']);
+                            }
                         }
                     }
+                } else {
+
+                    $result['message'] = 'User ID tidak valid';
                 }
             } else {
 
-                $result['message'] = 'User ID tidak valid';
+                $result['message'] = 'User ID tidak ditemukan';
             }
         } else {
 
-            $result['message'] = 'User ID tidak ditemukan';
+            $result['message'] = 'Parameter user_id tidak boleh kosong';
         }
 
         return $result;
@@ -161,27 +174,33 @@ class BusinessController extends \yii\rest\Controller
         $result = [];
         $result['success'] = false;
 
-        $modelBusiness = Business::find()
-            ->joinWith(['businessHours.businessHourAdditionals'])
-            ->andWhere(['business.id' => \Yii::$app->request->post()['business_id']])
-            ->asArray()->one();
+        if (!empty(\Yii::$app->request->post()['business_id'])) {
 
-        $result['is_open'] = false;
+            $modelBusiness = Business::find()
+                ->joinWith(['businessHours.businessHourAdditionals'])
+                ->andWhere(['business.id' => \Yii::$app->request->post()['business_id']])
+                ->asArray()->one();
 
-        if (!empty($modelBusiness)) {
+            $result['is_open'] = false;
 
-            $result['success'] = true;
+            if (!empty($modelBusiness)) {
 
-            if ($modelBusiness['is_open']) {
+                $result['success'] = true;
 
-                if (!empty($modelBusiness['businessHours'])) {
+                if ($modelBusiness['is_open']) {
 
-                    $result['is_open'] = $this->checkOpenStatus($modelBusiness['businessHours']);
+                    if (!empty($modelBusiness['businessHours'])) {
+
+                        $result['is_open'] = $this->checkOpenStatus($modelBusiness['businessHours']);
+                    }
                 }
+            } else {
+
+                $result['message'] = 'Business ID tidak ditemukan';
             }
         } else {
 
-            $result['message'] = 'Business ID tidak ditemukan';
+            $result['message'] = 'Parameter business_id tidak boleh kosong';
         }
 
         return $result;
@@ -192,23 +211,37 @@ class BusinessController extends \yii\rest\Controller
         $result = [];
         $result['success'] = false;
 
-        $modelBusiness = Business::findOne(['id' => \Yii::$app->request->post()['business_id']]);
+        $post = \Yii::$app->request->post();
 
-        if (!empty($modelBusiness)) {
+        if (!empty($post['business_id'])) {
 
-            $modelBusiness->is_open = strtolower(\Yii::$app->request->post()['is_open']) == 'true' ? true : false;
+            $modelBusiness = Business::findOne(['id' => $post['business_id']]);
 
-            if ($modelBusiness->save()) {
+            if (!empty($modelBusiness)) {
 
-                $result['success'] = true;
-                $result['message'] = 'Update Status buka/tutup berhasil';
+                if (!empty($post['is_open'])) {
+
+                    $modelBusiness->is_open = strtolower($post['is_open']) == 'true' ? true : false;
+
+                    if ($modelBusiness->save()) {
+
+                        $result['success'] = true;
+                        $result['message'] = 'Update Status buka/tutup berhasil';
+                    } else {
+
+                        $result['message'] = 'Update Status buka/tutup gagal, terdapat kesalahan saat menyimpan data';
+                    }
+                } else {
+
+                    $result['message'] = 'Parameter is_open tidak boleh kosong';
+                }
             } else {
 
-                $result['message'] = 'Update Status buka/tutup gagal, terdapat kesalahan saat menyimpan data';
+                $result['message'] = 'Business ID tidak ditemukan';
             }
         } else {
 
-            $result['message'] = 'Business ID tidak ditemukan';
+            $result['message'] = 'Parameter business_id tidak boleh kosong';
         }
 
         return $result;
@@ -225,115 +258,127 @@ class BusinessController extends \yii\rest\Controller
 
         $post = \Yii::$app->request->post();
 
-        $modelBusinessHour = BusinessHour::find()
-            ->joinWith([
-                'businessHourAdditionals' => function ($query) use ($post) {
+        if (!empty($post['day']) && !empty($post['business_id'])) {
 
-                    $query->andOnCondition(['business_hour_additional.day' => $post['day']]);
-                }
-            ])
-            ->andWhere(['business_hour.business_id' => $post['business_id']])
-            ->andWhere(['business_hour.day' => $post['day']])
-            ->one();
+            $modelBusinessHour = BusinessHour::find()
+                ->joinWith([
+                    'businessHourAdditionals' => function ($query) use ($post) {
 
-        if (!empty($modelBusinessHour)) {
+                        $query->andOnCondition(['business_hour_additional.day' => $post['day']]);
+                    }
+                ])
+                ->andWhere(['business_hour.business_id' => $post['business_id']])
+                ->andWhere(['business_hour.day' => $post['day']])
+                ->one();
 
-            $transaction = Yii::$app->db->beginTransaction();
+            if (!empty($modelBusinessHour)) {
 
-            if ($post['is_open'] && strtolower($post['is_open']) == "true") {
+                $transaction = Yii::$app->db->beginTransaction();
 
-                if (!empty($post['hour'])) {
+                if (!empty($post['is_open'])) {
 
-                    $postHour = json_decode($post['hour'], true);
+                    if ($post['is_open'] && strtolower($post['is_open']) == "true") {
 
-                    if (!empty($modelBusinessHour->businessHourAdditionals)) {
+                        if (!empty($post['hour'])) {
 
-                        foreach ($modelBusinessHour->businessHourAdditionals as $idx => $dataBusinessHourAdditional) {
+                            $postHour = json_decode($post['hour'], true);
 
-                            if ((count($postHour) - 1) < ($idx + 1)) {
+                            if (!empty($modelBusinessHour->businessHourAdditionals)) {
 
-                                if (!($flag = BusinessHourAdditional::deleteAll(['id' => $dataBusinessHourAdditional->id]))) {
+                                foreach ($modelBusinessHour->businessHourAdditionals as $idx => $dataBusinessHourAdditional) {
 
-                                    break;
+                                    if ((count($postHour) - 1) < ($idx + 1)) {
+
+                                        if (!($flag = BusinessHourAdditional::deleteAll(['id' => $dataBusinessHourAdditional->id]))) {
+
+                                            break;
+                                        }
+                                    }
                                 }
                             }
-                        }
-                    }
 
-                    foreach ($postHour as $i => $hour) {
+                            foreach ($postHour as $i => $hour) {
 
-                        if ($i == 0) {
+                                if ($i == 0) {
 
-                            $modelBusinessHour->open_at = $hour['open'];
-                            $modelBusinessHour->close_at = $hour['close'];
-                            $modelBusinessHour->is_open = true;
+                                    $modelBusinessHour->open_at = $hour['open'];
+                                    $modelBusinessHour->close_at = $hour['close'];
+                                    $modelBusinessHour->is_open = true;
 
-                            if (!($flag = $modelBusinessHour->save())) {
+                                    if (!($flag = $modelBusinessHour->save())) {
 
-                                break;
+                                        break;
+                                    }
+                                } else {
+
+                                    if (!empty(($modelBusinessHour->businessHourAdditionals[$i - 1]))) {
+
+                                        $hourAdditional = $modelBusinessHour->businessHourAdditionals[$i - 1];
+
+                                        $hourAdditional->open_at = $hour['open'];
+                                        $hourAdditional->close_at = $hour['close'];
+
+                                        if (!($flag = $hourAdditional->save())) {
+
+                                            break;
+                                        }
+                                    } else {
+
+                                        $newModelBusinessHourAdditional = new BusinessHourAdditional();
+                                        $newModelBusinessHourAdditional->unique_id = $modelBusinessHour->id . '-' . $post['day'] . '-' . $i;
+                                        $newModelBusinessHourAdditional->business_hour_id = $modelBusinessHour->id;
+                                        $newModelBusinessHourAdditional->is_open = true;
+                                        $newModelBusinessHourAdditional->day = $post['day'];
+                                        $newModelBusinessHourAdditional->open_at = $hour['open'];
+                                        $newModelBusinessHourAdditional->close_at = $hour['close'];
+
+                                        if (!($flag = $newModelBusinessHourAdditional->save())) {
+
+                                            break;
+                                        }
+                                    }
+                                }
                             }
                         } else {
 
-                            if (!empty(($modelBusinessHour->businessHourAdditionals[$i - 1]))) {
+                            $result['message'] = 'Parameter hour tidak boleh kosong';
+                        }
+                    } else {
 
-                                $hourAdditional = $modelBusinessHour->businessHourAdditionals[$i - 1];
+                        $modelBusinessHour->is_open = false;
+                        $modelBusinessHour->open_at = null;
+                        $modelBusinessHour->close_at = null;
 
-                                $hourAdditional->open_at = $hour['open'];
-                                $hourAdditional->close_at = $hour['close'];
+                        if (($flag = $modelBusinessHour->save())) {
 
-                                if (!($flag = $hourAdditional->save())) {
+                            if (!empty($modelBusinessHour->businessHourAdditionals)) {
 
-                                    break;
-                                }
-                            } else {
-
-                                $newModelBusinessHourAdditional = new BusinessHourAdditional();
-                                $newModelBusinessHourAdditional->unique_id = $modelBusinessHour->id . '-' . $post['day'] . '-' . $i;
-                                $newModelBusinessHourAdditional->business_hour_id = $modelBusinessHour->id;
-                                $newModelBusinessHourAdditional->is_open = true;
-                                $newModelBusinessHourAdditional->day = $post['day'];
-                                $newModelBusinessHourAdditional->open_at = $hour['open'];
-                                $newModelBusinessHourAdditional->close_at = $hour['close'];
-
-                                if (!($flag = $newModelBusinessHourAdditional->save())) {
-
-                                    break;
-                                }
+                                $flag = BusinessHourAdditional::deleteAll(['day' => $post['day'], 'business_hour_id' => $modelBusinessHour->id]);
                             }
                         }
                     }
+
+                    if ($flag) {
+
+                        $transaction->commit();
+
+                        $result['success'] = true;
+                        $result['message'] = 'Update jam operasional berhasil';
+                    } else {
+
+                        $transaction->rollback();
+                    }
                 } else {
 
-                    $result['message'] = 'Parameter hour tidak ada';
+                    $result['message'] = 'Parameter is_open tidak boleh kosong';
                 }
             } else {
 
-                $modelBusinessHour->is_open = false;
-                $modelBusinessHour->open_at = null;
-                $modelBusinessHour->close_at = null;
-
-                if (($flag = $modelBusinessHour->save())) {
-
-                    if (!empty($modelBusinessHour->businessHourAdditionals)) {
-
-                        $flag = BusinessHourAdditional::deleteAll(['day' => $post['day'], 'business_hour_id' => $modelBusinessHour->id]);
-                    }
-                }
-            }
-
-            if ($flag) {
-
-                $transaction->commit();
-
-                $result['success'] = true;
-                $result['message'] = 'Update jam operasional berhasil';
-            } else {
-
-                $transaction->rollback();
+                $result['message'] = 'Business ID tidak ditemukan';
             }
         } else {
 
-            $result['message'] = 'Business ID tidak ditemukan';
+            $result['message'] = 'Parameter day & business_id tidak boleh kosong';
         }
 
         return $result;
