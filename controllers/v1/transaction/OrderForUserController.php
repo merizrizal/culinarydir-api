@@ -34,7 +34,7 @@ class OrderForUserController extends \yii\rest\Controller
     {
         $modelTransactionSession = TransactionSession::find()
             ->select([
-                'transaction_session.id', 'transaction_session.user_ordered', 'transaction_session.business_id',
+                'transaction_session.id', 'transaction_session.user_ordered', 'transaction_session.business_id', 'transaction_session.total_price',
             ])
             ->joinWith([
                 'transactionItems' => function ($query) {
@@ -65,7 +65,7 @@ class OrderForUserController extends \yii\rest\Controller
 
         $modelPromoItem = PromoItem::find()
             ->select([
-                'promo_item.id', 'promo_item.promo_id', 'promo_item.amount'
+                'promo_item.id', 'substr(promo_item.id, 1, 6) as code', 'promo_item.promo_id', 'promo_item.amount'
             ])
             ->joinWith([
                 'userPromoItem' => function ($query) {
