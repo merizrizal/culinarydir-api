@@ -57,19 +57,17 @@ class UserPostController extends \yii\rest\Controller
 
                     $query->select([
                             'child.id', 'child.parent_id', 'child.image'
-                        ])->andOnCondition([
-                            'child.is_publish' => true,
-                            'child.type' => 'Photo'
-                        ]);
+                        ])
+                        ->andOnCondition(['child.is_publish' => true])
+                        ->andOnCondition(['child.type' => 'Photo']);;
                 },
                 'userPostLoves' => function ($query) use ($userId) {
 
                     $query->select([
                             'user_post_love.id', 'user_post_love.user_post_main_id'
-                        ])->andOnCondition([
-                            'user_post_love.user_id' => $userId,
-                            'user_post_love.is_active' => true
-                        ]);
+                        ])
+                        ->andOnCondition(['user_post_love.user_id' => $userId])
+                        ->andOnCondition(['user_post_love.is_active' => true]);;
                 },
                 'userVotes'=> function ($query) {
 
