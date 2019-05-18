@@ -7,6 +7,7 @@ use core\models\TransactionItem;
 use core\models\TransactionSession;
 use yii\filters\VerbFilter;
 use yii\helpers\ArrayHelper;
+use function yii\i18n\Formatter\asDate as time;
 use yii\web\NotFoundHttpException;
 
 class OrderForUserController extends \yii\rest\Controller
@@ -53,7 +54,7 @@ class OrderForUserController extends \yii\rest\Controller
                 }
             ])
             ->andWhere(['transaction_session.user_ordered' => $user])
-            ->andWhere(['transaction_session.is_closed' => false])
+            ->andWhere(['transaction_session.status' => 'Open'])
             ->asArray()->one();
 
         return $modelTransactionSession;
