@@ -53,7 +53,7 @@ class OrderForUserController extends \yii\rest\Controller
                 }
             ])
             ->andWhere(['transaction_session.user_ordered' => $user])
-            ->andWhere(['transaction_session.is_closed' => false])
+            ->andWhere(['transaction_session.status' => 'Open'])
             ->asArray()->one();
 
         return $modelTransactionSession;
