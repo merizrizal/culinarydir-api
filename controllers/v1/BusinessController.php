@@ -387,7 +387,7 @@ class BusinessController extends \yii\rest\Controller
     public function actionDeliveryList($id)
     {
         $model = BusinessDelivery::find()
-        ->select(['business_delivery.id', 'delivery_method.delivery_name', 'business_delivery.note', 'business_delivery.description', 'business_delivery.delivery_method_id'])
+            ->select(['business_delivery.id', 'delivery_method.delivery_name', 'business_delivery.note', 'business_delivery.description', 'business_delivery.delivery_method_id'])
             ->joinWith([
                 'deliveryMethod' => function ($query) {
 
