@@ -230,6 +230,7 @@ class BusinessController extends \yii\rest\Controller
                     } else {
 
                         $result['message'] = 'Update Status buka/tutup gagal, terdapat kesalahan saat menyimpan data';
+                        $result['error'] = $modelBusiness->getErrors();
                     }
                 } else {
 
