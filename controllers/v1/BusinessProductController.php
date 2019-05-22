@@ -27,7 +27,8 @@ class BusinessProductController extends \yii\rest\Controller
                         'create-menu' => ['POST'],
                         'update-menu' => ['POST'],
                         'create-product-category' => ['POST'],
-                        'update-product-category' => ['POST']
+                        'update-product-category' => ['POST'],
+                        'update-menu-status' => ['POST']
                     ],
                 ],
             ]);
@@ -144,15 +145,15 @@ class BusinessProductController extends \yii\rest\Controller
                 ->andWhere(['OR', ['type' => 'Menu'], ['type' => 'Specific-Menu']])
                 ->asArray()->one();
 
-            $last = BusinessProductCategory::find()
-                ->select(['business_product_category.order'])
-                ->joinWith(['productCategory'])
-                ->andWhere(['business_product_category.business_id' => $post['business_id']])
-                ->andWhere(['OR', ['product_category.type' => 'Menu'], ['product_category.type' => 'Specific-Menu']])
-                ->orderBy(['business_product_category.order' => SORT_DESC])
-                ->asArray()->one();
-
             if (!empty($modelProductCategory)) {
+
+                $last = BusinessProductCategory::find()
+                    ->select(['business_product_category.order', 'business_product_category.product_category_id'])
+                    ->joinWith(['productCategory'])
+                    ->andWhere(['business_product_category.business_id' => $post['business_id']])
+                    ->andWhere(['OR', ['product_category.type' => 'Menu'], ['product_category.type' => 'Specific-Menu']])
+                    ->orderBy(['business_product_category.order' => SORT_DESC])
+                    ->asArray()->one();
 
                 $newModelBusinessProductCategory = new BusinessProductCategory();
 
@@ -214,6 +215,42 @@ class BusinessProductController extends \yii\rest\Controller
         return $result;
     }
 
+    public function actionUpdateMenuStatus()
+    {
+        $result = [];
+        $result['success'] = false;
+
+        $post = \Yii::$app->request->post();
+
+        if (!empty($post['business_product_id']) && !empty($post['is_available'])) {
+
+            $modelBusinessProduct = BusinessProduct::findOne(['id' => $post['business_product_id']]);
+
+            if (!empty($modelBusinessProduct)) {
+
+                $modelBusinessProduct->is_available = strtolower($post['is_available']) == 'true' ? true : false;
+
+                if ($modelBusinessProduct->save()) {
+
+                    $result['success'] = true;
+                    $result['message'] = 'Status menu berhasil diupdate';
+                } else {
+
+                    $result['message'] = 'Status menu gagal diupdate';
+                    $result['error'] = $modelBusinessProduct->getErrors();
+                }
+            } else {
+
+                $result['message'] = 'Business Product ID tidak ditemukan';
+            }
+        } else {
+
+            $result['message'] = 'Parameter business_product_id dan is_available tidak boleh kosong';
+        }
+
+        return $result;
+    }
+
     private function getMenuList($not_active)
     {
         $result = [];
@@ -221,7 +258,7 @@ class BusinessProductController extends \yii\rest\Controller
 
         $post = \Yii::$app->request->post();
 
-        if (!empty($post['business_id'])) {
+        if (!empty($post['business_id']) && !empty($post['business_product_category_id'])) {
 
             $modelBusinessProduct = BusinessProduct::find()
                 ->select([
@@ -231,6 +268,7 @@ class BusinessProductController extends \yii\rest\Controller
                     'business_product.price',
                     'business_product.order',
                     'business_product.business_product_category_id',
+                    'business_product.is_available',
                     'product_category.name as category_name'
                 ])
                 ->joinWith(['businessProductCategory.productCategory'])
@@ -252,14 +290,15 @@ class BusinessProductController extends \yii\rest\Controller
                     $result['menu'][$i]['price'] = $dataBusinessProduct['price'];
                     $result['menu'][$i]['category'] = $dataBusinessProduct['category_name'];
                     $result['menu'][$i]['order'] = $dataBusinessProduct['order'];
+                    $result['menu'][$i]['is_available'] = $dataBusinessProduct['is_available'];
                 }
             } else {
 
-                $result['message'] = 'Business ID tidak ditemukan';
+                $result['message'] = 'Menu tidak ditemukan';
             }
         } else {
 
-            $result['message'] = 'Parameter business_id tidak boleh kosong';
+            $result['message'] = 'Parameter business_id dan business_product_category_id tidak boleh kosong';
         }
 
         return $result;
