@@ -48,8 +48,12 @@ class OrderController extends \yii\rest\Controller
         if (!empty(\Yii::$app->request->post()['order_id'])) {
 
             $modelTransactionSession = TransactionSession::find()
+                ->select(['transaction_session.id', 'transaction_session.total_price', 'transaction_session.total_amount', 'transaction_session.user_ordered'])
                 ->joinWith([
-                    'transactionItems',
+                    'transactionItems' => function ($query) {
+
+                        $query->orderBy(['transaction_item.created_at' => SORT_ASC]);
+                    },
                     'transactionItems.businessProduct',
                     'userOrdered',
                     'userOrdered.userPerson.person',

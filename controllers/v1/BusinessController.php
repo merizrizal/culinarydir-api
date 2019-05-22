@@ -47,6 +47,7 @@ class BusinessController extends \yii\rest\Controller
         if (!empty(\Yii::$app->request->post()['business_id'])) {
 
             $modelBusiness = Business::find()
+                ->select(['business.id'])
                 ->joinWith([
                     'businessHours' => function ($query) {
 
@@ -112,6 +113,7 @@ class BusinessController extends \yii\rest\Controller
         if (!empty(\Yii::$app->request->post()['user_id'])) {
 
             $model = User::find()
+                ->select(['user.id'])
                 ->joinWith([
                     'userPerson.person.businessContactPeople.business.businessLocation',
                     'userPerson.person.businessContactPeople.business.businessHours.businessHourAdditionals'
@@ -177,15 +179,15 @@ class BusinessController extends \yii\rest\Controller
         if (!empty(\Yii::$app->request->post()['business_id'])) {
 
             $modelBusiness = Business::find()
+                ->select(['business.id', 'business.is_open'])
                 ->joinWith(['businessHours.businessHourAdditionals'])
                 ->andWhere(['business.id' => \Yii::$app->request->post()['business_id']])
                 ->asArray()->one();
 
-            $result['is_open'] = false;
-
             if (!empty($modelBusiness)) {
 
                 $result['success'] = true;
+                $result['is_open'] = false;
 
                 if ($modelBusiness['is_open']) {
 
@@ -308,6 +310,7 @@ class BusinessController extends \yii\rest\Controller
 
                                     if (!($flag = $modelBusinessHour->save())) {
 
+                                        $result['error'] = $modelBusinessHour->getErrors();
                                         break;
                                     }
                                 } else {
@@ -321,6 +324,7 @@ class BusinessController extends \yii\rest\Controller
 
                                         if (!($flag = $hourAdditional->save())) {
 
+                                            $result['error'] = $hourAdditional->getErrors();
                                             break;
                                         }
                                     } else {
@@ -335,6 +339,7 @@ class BusinessController extends \yii\rest\Controller
 
                                         if (!($flag = $newModelBusinessHourAdditional->save())) {
 
+                                            $result['error'] = $newModelBusinessHourAdditional->getErrors();
                                             break;
                                         }
                                     }
@@ -356,6 +361,9 @@ class BusinessController extends \yii\rest\Controller
 
                                 $flag = BusinessHourAdditional::deleteAll(['day' => $post['day'], 'business_hour_id' => $modelBusinessHour->id]);
                             }
+                        } else {
+
+                            $result['error'] = $modelBusinessHour->getErrors();
                         }
                     }
 
@@ -368,6 +376,8 @@ class BusinessController extends \yii\rest\Controller
                     } else {
 
                         $transaction->rollback();
+
+                        $result['message'] = 'Terjadi kesalahan saat penyimpanan data';
                     }
                 } else {
 
@@ -427,8 +437,13 @@ class BusinessController extends \yii\rest\Controller
         \Yii::$app->formatter->timeZone = 'Asia/Jakarta';
 
         $modelTransactionSession = TransactionSession::find()
+            ->select(['transaction_session.id', 'transaction_session.order_id'])
             ->joinWith([
                 'transactionSessionDelivery.driver',
+                'transactionItems' => function ($query) {
+
+                    $query->orderBy(['transaction_item.created_at' => SORT_ASC]);
+                },
                 'transactionItems.businessProduct',
             ])
             ->andWhere(['date(transaction_session.created_at)' => \Yii::$app->formatter->asDate(time())]);

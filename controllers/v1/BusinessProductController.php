@@ -90,7 +90,7 @@ class BusinessProductController extends \yii\rest\Controller
             }
         } else {
 
-            $result['message'] = 'Parameter business_id, product_name, dan product_price tidak boleh kosong';
+            $result['message'] = 'Parameter business_id, product_name, & product_price tidak boleh kosong';
         }
 
         return $result;
@@ -179,7 +179,7 @@ class BusinessProductController extends \yii\rest\Controller
             }
         } else {
 
-            $result['message'] = 'Parameter business_id, category_name, dan is_active tidak boleh kosong';
+            $result['message'] = 'Parameter business_id, category_name, & is_active tidak boleh kosong';
         }
 
         return $result;
@@ -245,7 +245,7 @@ class BusinessProductController extends \yii\rest\Controller
             }
         } else {
 
-            $result['message'] = 'Parameter business_product_id dan is_available tidak boleh kosong';
+            $result['message'] = 'Parameter business_product_id & is_available tidak boleh kosong';
         }
 
         return $result;
@@ -298,7 +298,7 @@ class BusinessProductController extends \yii\rest\Controller
             }
         } else {
 
-            $result['message'] = 'Parameter business_id dan business_product_category_id tidak boleh kosong';
+            $result['message'] = 'Parameter business_id & business_product_category_id tidak boleh kosong';
         }
 
         return $result;
