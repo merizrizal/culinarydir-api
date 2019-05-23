@@ -5,6 +5,8 @@ namespace api\controllers\v1\transaction;
 use core\models\PromoItem;
 use core\models\TransactionItem;
 use core\models\TransactionSession;
+use core\models\TransactionSessionOrder;
+use frontend\components\AddressType;
 use yii\filters\VerbFilter;
 use yii\helpers\ArrayHelper;
 use yii\web\NotFoundHttpException;
@@ -24,7 +26,10 @@ class OrderForUserController extends \yii\rest\Controller
                     'actions' => [
                         'transaction-item-list' => ['GET'],
                         'user-promo-item-list' => ['GET'],
-                        'set-item-amount' => ['POST']
+                        'set-item-amount' => ['POST'],
+                        'remove-item' => ['POST'],
+                        'set-notes' => ['POST'],
+                        'order-checkout' => ['POST']
                     ],
                 ],
             ]);
@@ -215,6 +220,115 @@ class OrderForUserController extends \yii\rest\Controller
 
             $result['success'] = false;
             $result['error'] = $modelTransactionItem->getErrors();
+        }
+
+        return $result;
+    }
+
+    public function actionOrderCheckout()
+    {
+        $post = \Yii::$app->request->post();
+
+        $result = [];
+
+        $modelTransactionSessionOrder = new TransactionSessionOrder();
+
+        $modelPromoItem = new PromoItem();
+
+        $modelTransactionSession = TransactionSession::find()
+            ->joinWith([
+                'business',
+                'business.businessLocation',
+                'userOrdered',
+                'userOrdered.userPerson.person'
+            ])
+            ->andWhere(['transaction_session.user_ordered' => $post['user_id']])
+            ->andWhere(['transaction_session.status' => 'Open'])
+            ->one();
+
+        if (empty($modelTransactionSession)) {
+
+            throw new NotFoundHttpException('The requested page does not exist.');
+        }
+
+        $transaction = \Yii::$app->db->beginTransaction();
+        $flag = false;
+
+        $modelTransactionSessionOrder->transaction_session_id = $modelTransactionSession->id;
+        $modelTransactionSessionOrder->business_delivery_id = !empty($post['business_delivery_id']) ? $post['business_delivery_id'] : null;
+        $modelTransactionSessionOrder->business_payment_id = !empty($post['business_payment_id']) ? $post['business_payment_id'] : null;;
+
+        if (($flag = $modelTransactionSessionOrder->save())) {
+
+            $modelTransactionSession->promo_item_id = !empty($post['promo_item_id']) ? $post['promo_item_id'] : null;
+            $modelTransactionSession->note = !empty($post['note']) ? $post['note'] : null;
+            $modelTransactionSession->status = 'New';
+
+            if (!empty($modelTransactionSession->promo_item_id)) {
+
+                $modelPromoItem = PromoItem::find()
+                    ->joinWith(['userPromoItem'])
+                    ->andWhere(['promo_item.id' => $modelTransactionSession->promo_item_id])
+                    ->andWhere(['promo_item.business_claimed' => null])
+                    ->andWhere(['promo_item.not_active' => false])
+                    ->andWhere(['user_promo_item.user_id' => $post['user_id']])
+                    ->one();
+
+                $modelPromoItem->business_claimed = $modelTransactionSession->business_id;
+                $modelPromoItem->not_active = true;
+
+                if (($flag = $modelPromoItem->save())) {
+
+                    $modelTransactionSession->promo_item_id = $modelPromoItem->id;
+                    $modelTransactionSession->discount_value = $modelPromoItem->amount;
+                    $modelTransactionSession->discount_type = 'Amount';
+                }
+            }
+
+            $flag = $modelTransactionSession->save();
+        }
+
+        if ($flag) {
+
+            $transaction->commit();
+
+            $result['success'] = true;
+
+            $result['order'] = [];
+            $result['order']['header']['customer_id'] = $modelTransactionSession['userOrdered']['id'];
+            $result['order']['header']['customer_name'] = $modelTransactionSession['userOrdered']['full_name'];
+            $result['order']['header']['customer_username'] = $modelTransactionSession['userOrdered']['username'];
+            $result['order']['header']['customer_phone'] = $modelTransactionSession['userOrdered']['userPerson']['person']['phone'];
+            $result['order']['header']['customer_location'] = $post['location'];
+            $result['order']['header']['customer_delivery_note'] = $modelTransactionSession->note;
+
+            $result['order']['header']['business_id'] = $modelTransactionSession['business_id'];
+            $result['order']['header']['business_name'] = $modelTransactionSession['business']['name'];
+            $result['order']['header']['business_phone'] = $modelTransactionSession['business']['phone3'];
+            $result['order']['header']['business_location'] = $modelTransactionSession['business']['businessLocation']['coordinate'];
+            $result['order']['header']['business_address'] = AddressType::widget([
+                'businessLocation' => $modelTransactionSession['business']['businessLocation'],
+                'showDetail' => false
+            ]);
+
+            $result['order']['header']['order_id'] = substr($modelTransactionSession['order_id'], 0, 6);
+            $result['order']['header']['note'] = $modelTransactionSession['note'];
+            $result['order']['header']['total_price'] = $modelTransactionSession['total_price'];
+            $result['order']['header']['total_amount'] = $modelTransactionSession['total_amount'];
+            $result['order']['header']['total_distance'] = 123456; //todo
+            $result['order']['header']['total_delivery_fee'] = 123456; //todo
+            $result['order']['header']['order_status'] = $modelTransactionSession['status'];
+
+            $client = new \ElephantIO\Client(new \ElephantIO\Engine\SocketIO\Version2X(\Yii::$app->params['socketIOServiceAddress']));
+            $client->initialize();
+            $client->emit('broadcast', $result['order']);
+            $client->close();
+        } else {
+
+            $transaction->rollBack();
+
+            $result['success'] = false;
+            $result['error'] = ArrayHelper::merge($modelTransactionSession->getErrors(), $modelTransactionSessionOrder->getErrors(), $modelPromoItem->getErrors());
         }
 
         return $result;
