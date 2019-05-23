@@ -66,6 +66,7 @@ class BusinessProductController extends \yii\rest\Controller
             $newModelBusinessProduct = new BusinessProduct();
 
             $last = BusinessProduct::find()
+                ->select(['business_product.order'])
                 ->andWhere(['business_id' => $post['business_id']])
                 ->orderBy(['order' => SORT_DESC])
                 ->asArray()->one();
