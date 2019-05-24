@@ -42,6 +42,18 @@ class OrderForUserController extends \yii\rest\Controller
                 'transaction_session.id', 'transaction_session.user_ordered', 'transaction_session.business_id', 'transaction_session.total_price',
             ])
             ->joinWith([
+                'business' => function ($query) {
+
+                    $query->select([
+                            'business.id', 'business.name'
+                        ]);
+                },
+                'business.businessLocation' => function ($query) {
+
+                    $query->select([
+                            'business_location.address_type', 'business_location.address', 'business_location.coordinate'
+                        ]);
+                },
                 'transactionItems' => function ($query) {
 
                     $query->select([
@@ -237,6 +249,7 @@ class OrderForUserController extends \yii\rest\Controller
 
         $modelTransactionSession = TransactionSession::find()
             ->joinWith([
+                'transactionItems.businessProduct',
                 'business',
                 'business.businessLocation',
                 'userOrdered',
@@ -300,6 +313,7 @@ class OrderForUserController extends \yii\rest\Controller
             $result['order']['header']['customer_username'] = $modelTransactionSession['userOrdered']['username'];
             $result['order']['header']['customer_phone'] = $modelTransactionSession['userOrdered']['userPerson']['person']['phone'];
             $result['order']['header']['customer_location'] = $post['location'];
+            $result['order']['header']['customer_address'] = $post['address'];
             $result['order']['header']['customer_delivery_note'] = $modelTransactionSession->note;
 
             $result['order']['header']['business_id'] = $modelTransactionSession['business_id'];
@@ -315,9 +329,18 @@ class OrderForUserController extends \yii\rest\Controller
             $result['order']['header']['note'] = $modelTransactionSession['note'];
             $result['order']['header']['total_price'] = $modelTransactionSession['total_price'];
             $result['order']['header']['total_amount'] = $modelTransactionSession['total_amount'];
-            $result['order']['header']['total_distance'] = 123456; //todo
-            $result['order']['header']['total_delivery_fee'] = 123456; //todo
+            $result['order']['header']['distance'] = $post['distance'];
+            $result['order']['header']['delivery_fee'] = $post['delivery_fee'];
             $result['order']['header']['order_status'] = $modelTransactionSession['status'];
+
+            foreach ($modelTransactionSession['transactionItems'] as $i => $dataTransactionItem) {
+
+                $result['order']['detail'][$i] = [];
+                $result['order']['detail'][$i]['menu'] = $dataTransactionItem['businessProduct']['name'];
+                $result['order']['detail'][$i]['price'] = $dataTransactionItem['price'];
+                $result['order']['detail'][$i]['amount'] = $dataTransactionItem['amount'];
+                $result['order']['detail'][$i]['note'] = $dataTransactionItem['note'];
+            }
 
             $client = new \ElephantIO\Client(new \ElephantIO\Engine\SocketIO\Version2X(\Yii::$app->params['socketIOServiceAddress']));
             $client->initialize();
