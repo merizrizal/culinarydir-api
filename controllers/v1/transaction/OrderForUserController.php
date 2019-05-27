@@ -150,6 +150,7 @@ class OrderForUserController extends \yii\rest\Controller
 
             $result['success'] = true;
             $result['amount'] = $modelTransactionItem->amount;
+            $result['total_price'] = $modelTransactionSession->total_price;
         } else {
 
             $transaction->rollBack();
@@ -164,6 +165,8 @@ class OrderForUserController extends \yii\rest\Controller
     public function actionRemoveItem()
     {
         $post = \Yii::$app->request->post();
+
+        $result = [];
 
         $modelTransactionItem = TransactionItem::find()
             ->joinWith(['transactionSession'])
@@ -184,13 +187,15 @@ class OrderForUserController extends \yii\rest\Controller
 
         if ($modelTransactionSession->total_amount == 0) {
 
+            $result['total_price'] = 0;
+
             $flag = $modelTransactionItem->delete() && $modelTransactionSession->delete();
         } else {
 
+            $result['total_price'] = $modelTransactionSession->total_price;
+
             $flag = $modelTransactionItem->delete() && $modelTransactionSession->save();
         }
-
-        $result = [];
 
         if ($flag) {
 
