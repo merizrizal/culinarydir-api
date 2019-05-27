@@ -1,18 +1,16 @@
 <?php
 
-namespace api\controllers\v1;
+namespace api\controllers\v1\transaction;
 
-use Faker\Factory;
+uuse Faker\Factory;
 use core\models\TransactionCanceledByDriver;
 use core\models\TransactionSession;
 use core\models\TransactionSessionDelivery;
 use core\models\User;
 use sycomponent\Tools;
 use yii\filters\VerbFilter;
-
-class OrderController extends \yii\rest\Controller
+class OrderForDriverController extends \yii\rest\Controller
 {
-
     /**
      * @inheritdoc
      */
