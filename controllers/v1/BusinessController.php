@@ -9,7 +9,6 @@ use core\models\BusinessHourAdditional;
 use core\models\BusinessPayment;
 use core\models\TransactionSession;
 use core\models\User;
-use Yii;
 use yii\filters\VerbFilter;
 
 class BusinessController extends \yii\rest\Controller
@@ -74,8 +73,8 @@ class BusinessController extends \yii\rest\Controller
                         $result['schedule'][$i]['hour'] = [];
 
                         array_push($result['schedule'][$i]['hour'], [
-                            'open' => Yii::$app->formatter->asTime($dataBusinessHour['open_at'], 'HH:mm'),
-                            'close' => Yii::$app->formatter->asTime($dataBusinessHour['close_at'], 'HH:mm')
+                            'open' => \Yii::$app->formatter->asTime($dataBusinessHour['open_at'], 'HH:mm'),
+                            'close' => \Yii::$app->formatter->asTime($dataBusinessHour['close_at'], 'HH:mm')
                         ]);
 
                         if (!empty($dataBusinessHour['businessHourAdditionals'])) {
@@ -83,8 +82,8 @@ class BusinessController extends \yii\rest\Controller
                             foreach ($dataBusinessHour['businessHourAdditionals'] as $dataBusinessHourAdditional) {
 
                                 array_push($result['schedule'][$i]['hour'], [
-                                    'open' => Yii::$app->formatter->asTime($dataBusinessHourAdditional['open_at'], 'HH:mm'),
-                                    'close' => Yii::$app->formatter->asTime($dataBusinessHourAdditional['close_at'], 'HH:mm')
+                                    'open' => \Yii::$app->formatter->asTime($dataBusinessHourAdditional['open_at'], 'HH:mm'),
+                                    'close' => \Yii::$app->formatter->asTime($dataBusinessHourAdditional['close_at'], 'HH:mm')
                                 ]);
                             }
                         }
@@ -276,7 +275,7 @@ class BusinessController extends \yii\rest\Controller
 
             if (!empty($modelBusinessHour)) {
 
-                $transaction = Yii::$app->db->beginTransaction();
+                $transaction = \Yii::$app->db->beginTransaction();
 
                 if (!empty($post['is_open'])) {
 
@@ -398,7 +397,10 @@ class BusinessController extends \yii\rest\Controller
     public function actionDeliveryList($id)
     {
         $model = BusinessDelivery::find()
-            ->select(['business_delivery.id', 'delivery_method.delivery_name', 'business_delivery.note', 'business_delivery.description', 'business_delivery.delivery_method_id'])
+            ->select([
+                'business_delivery.id', 'delivery_method.delivery_name', 'business_delivery.note', 'business_delivery.description',
+                'business_delivery.delivery_method_id', 'delivery_method.is_special'
+            ])
             ->joinWith([
                 'deliveryMethod' => function ($query) {
 

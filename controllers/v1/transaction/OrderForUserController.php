@@ -29,6 +29,7 @@ class OrderForUserController extends \yii\rest\Controller
                         'set-item-amount' => ['POST'],
                         'remove-item' => ['POST'],
                         'set-notes' => ['POST'],
+                        'calculate-delivery-fee' => ['POST'],
                         'order-checkout' => ['POST']
                     ],
                 ],
@@ -242,6 +243,17 @@ class OrderForUserController extends \yii\rest\Controller
         return $result;
     }
 
+    public function actionCalculateDeliveryFee() {
+
+        $post = \Yii::$app->request->post();
+
+        $result = [];
+
+        $result['delivery_fee'] = round($post['distance'] / 1000) * 2500;
+
+        return $result;
+    }
+
     public function actionOrderCheckout()
     {
         $post = \Yii::$app->request->post();
@@ -274,7 +286,8 @@ class OrderForUserController extends \yii\rest\Controller
 
         $modelTransactionSessionOrder->transaction_session_id = $modelTransactionSession->id;
         $modelTransactionSessionOrder->business_delivery_id = !empty($post['business_delivery_id']) ? $post['business_delivery_id'] : null;
-        $modelTransactionSessionOrder->business_payment_id = !empty($post['business_payment_id']) ? $post['business_payment_id'] : null;;
+        $modelTransactionSessionOrder->business_payment_id = !empty($post['business_payment_id']) ? $post['business_payment_id'] : null;
+        $modelTransactionSessionOrder->destination_coordinate = $post['location'];
 
         if (($flag = $modelTransactionSessionOrder->save())) {
 
@@ -313,38 +326,38 @@ class OrderForUserController extends \yii\rest\Controller
             $result['success'] = true;
 
             $result['order'] = [];
-            $result['order']['header']['customer_id'] = $modelTransactionSession['userOrdered']['id'];
-            $result['order']['header']['customer_name'] = $modelTransactionSession['userOrdered']['full_name'];
-            $result['order']['header']['customer_username'] = $modelTransactionSession['userOrdered']['username'];
-            $result['order']['header']['customer_phone'] = $modelTransactionSession['userOrdered']['userPerson']['person']['phone'];
-            $result['order']['header']['customer_location'] = $post['location'];
+            $result['order']['header']['customer_id'] = $modelTransactionSession->userOrdered->id;
+            $result['order']['header']['customer_name'] = $modelTransactionSession->userOrdered->full_name;
+            $result['order']['header']['customer_username'] = $modelTransactionSession->userOrdered->username;
+            $result['order']['header']['customer_phone'] = $modelTransactionSession->userOrdered->userPerson->person->phone;
+            $result['order']['header']['customer_location'] = $modelTransactionSessionOrder->destination_coordinate;
             $result['order']['header']['customer_address'] = $post['address'];
             $result['order']['header']['customer_delivery_note'] = $modelTransactionSession->note;
 
-            $result['order']['header']['business_id'] = $modelTransactionSession['business_id'];
-            $result['order']['header']['business_name'] = $modelTransactionSession['business']['name'];
-            $result['order']['header']['business_phone'] = $modelTransactionSession['business']['phone3'];
-            $result['order']['header']['business_location'] = $modelTransactionSession['business']['businessLocation']['coordinate'];
+            $result['order']['header']['business_id'] = $modelTransactionSession->business_id;
+            $result['order']['header']['business_name'] = $modelTransactionSession->business->name;
+            $result['order']['header']['business_phone'] = $modelTransactionSession->business->phone3;
+            $result['order']['header']['business_location'] = $modelTransactionSession->business->businessLocation->coordinate;
             $result['order']['header']['business_address'] = AddressType::widget([
-                'businessLocation' => $modelTransactionSession['business']['businessLocation'],
+                'businessLocation' => $modelTransactionSession->business->businessLocation,
                 'showDetail' => false
             ]);
 
-            $result['order']['header']['order_id'] = substr($modelTransactionSession['order_id'], 0, 6);
-            $result['order']['header']['note'] = $modelTransactionSession['note'];
-            $result['order']['header']['total_price'] = $modelTransactionSession['total_price'];
-            $result['order']['header']['total_amount'] = $modelTransactionSession['total_amount'];
+            $result['order']['header']['order_id'] = substr($modelTransactionSession->order_id, 0, 6);
+            $result['order']['header']['note'] = $modelTransactionSession->note;
+            $result['order']['header']['total_price'] = $modelTransactionSession->total_price;
+            $result['order']['header']['total_amount'] = $modelTransactionSession->total_amount;
             $result['order']['header']['distance'] = $post['distance'];
             $result['order']['header']['delivery_fee'] = $post['delivery_fee'];
-            $result['order']['header']['order_status'] = $modelTransactionSession['status'];
+            $result['order']['header']['order_status'] = $modelTransactionSession->status;
 
-            foreach ($modelTransactionSession['transactionItems'] as $i => $dataTransactionItem) {
+            foreach ($modelTransactionSession->transactionItems as $i => $dataTransactionItem) {
 
                 $result['order']['detail'][$i] = [];
-                $result['order']['detail'][$i]['menu'] = $dataTransactionItem['businessProduct']['name'];
-                $result['order']['detail'][$i]['price'] = $dataTransactionItem['price'];
-                $result['order']['detail'][$i]['amount'] = $dataTransactionItem['amount'];
-                $result['order']['detail'][$i]['note'] = $dataTransactionItem['note'];
+                $result['order']['detail'][$i]['menu'] = $dataTransactionItem->businessProduct->name;
+                $result['order']['detail'][$i]['price'] = $dataTransactionItem->price;
+                $result['order']['detail'][$i]['amount'] = $dataTransactionItem->amount;
+                $result['order']['detail'][$i]['note'] = $dataTransactionItem->note;
             }
 
             $client = new \ElephantIO\Client(new \ElephantIO\Engine\SocketIO\Version2X(\Yii::$app->params['socketIOServiceAddress']));
