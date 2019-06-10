@@ -2,13 +2,14 @@
 
 namespace api\controllers\v1\transaction;
 
-uuse Faker\Factory;
+use Faker\Factory;
 use core\models\TransactionCanceledByDriver;
 use core\models\TransactionSession;
 use core\models\TransactionSessionDelivery;
 use core\models\User;
 use sycomponent\Tools;
 use yii\filters\VerbFilter;
+
 class OrderForDriverController extends \yii\rest\Controller
 {
     /**
@@ -30,7 +31,6 @@ class OrderForDriverController extends \yii\rest\Controller
                         'send-order' => ['POST'],
                         'finish-order' => ['POST'],
                         'new-order' => ['POST'],
-                        'calculate-delivery-fee' => ['POST'],
                         'get-list-order-by-driver' => ['POST']
                     ],
                 ],
@@ -414,11 +414,6 @@ class OrderForDriverController extends \yii\rest\Controller
         }
 
         return $result;
-    }
-
-    public function actionCalculateDeliveryFee()
-    {
-
     }
 
     public function actionGetListOrderByDriver()
