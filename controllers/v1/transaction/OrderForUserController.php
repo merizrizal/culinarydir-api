@@ -31,7 +31,8 @@ class OrderForUserController extends \yii\rest\Controller
                         'remove-item' => ['POST'],
                         'set-notes' => ['POST'],
                         'calculate-delivery-fee' => ['POST'],
-                        'order-checkout' => ['POST']
+                        'order-checkout' => ['POST'],
+                        'cancel-order' => ['POST']
                     ],
                 ],
             ]);
@@ -377,6 +378,58 @@ class OrderForUserController extends \yii\rest\Controller
         }
 
         $result['asd'] = $post;
+
+        return $result;
+    }
+
+    public function actionCancelOrder()
+    {
+        $post = \Yii::$app->request->post();
+
+        $result = [];
+
+        $modelTransactionItem = TransactionItem::find()
+            ->joinWith(['transactionSession'])
+            ->andWhere(['transaction_item.transaction_session_id' => !empty($post['id']) ? $post['id'] : null])
+            ->all();
+
+        if (empty($modelTransactionItem)) {
+
+            throw new NotFoundHttpException('The requested page does not exist.');
+        }
+
+        $transaction = \Yii::$app->db->beginTransaction();
+        $flag = false;
+
+        $modelTransactionSession = $modelTransactionItem[0]->transactionSession;
+
+        foreach ($modelTransactionItem as $dataTransactionItem) {
+
+            if (!($flag = $dataTransactionItem->delete())) {
+
+                break;
+            }
+        }
+
+        if ($flag) {
+
+            $flag = $modelTransactionSession->delete();
+        }
+
+        if ($flag) {
+
+            $result['success'] = true;
+            $result['message'] = 'Pesanan telah dibatalkan';
+
+            $transaction->commit();
+        } else {
+
+            $result['success'] = false;
+            $result['message'] = 'Pesanan gagal dibatalkan';
+            $result['error'] = ArrayHelper::merge($modelTransactionItem->getErrors(), $modelTransactionSession->getErrors());
+
+            $transaction->rollback();
+        }
 
         return $result;
     }
