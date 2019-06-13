@@ -11,6 +11,7 @@ use yii\filters\VerbFilter;
 use yii\helpers\ArrayHelper;
 use yii\web\NotFoundHttpException;
 
+
 class OrderForUserController extends \yii\rest\Controller
 {
     /**
@@ -360,10 +361,13 @@ class OrderForUserController extends \yii\rest\Controller
                 $result['order']['detail'][$i]['note'] = $dataTransactionItem->note;
             }
 
-            $client = new \ElephantIO\Client(new \ElephantIO\Engine\SocketIO\Version2X(\Yii::$app->params['socketIOServiceAddress']));
-            $client->initialize();
-            $client->emit('broadcast', $result['order']);
-            $client->close();
+            if ($post['business_delivery_special'] === 'true') {
+
+                $client = new \ElephantIO\Client(new \ElephantIO\Engine\SocketIO\Version2X(\Yii::$app->params['socketIOServiceAddress']));
+                $client->initialize();
+                $client->emit('broadcast', $result['order']);
+                $client->close();
+            }
         } else {
 
             $transaction->rollBack();
@@ -371,6 +375,8 @@ class OrderForUserController extends \yii\rest\Controller
             $result['success'] = false;
             $result['error'] = ArrayHelper::merge($modelTransactionSession->getErrors(), $modelTransactionSessionOrder->getErrors(), $modelPromoItem->getErrors());
         }
+
+        $result['asd'] = $post;
 
         return $result;
     }
