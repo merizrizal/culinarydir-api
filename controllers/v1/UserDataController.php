@@ -2,9 +2,9 @@
 
 namespace api\controllers\v1;
 
-use yii\filters\VerbFilter;
-use yii\data\ActiveDataProvider;
 use core\models\TransactionSession;
+use yii\data\ActiveDataProvider;
+use yii\filters\VerbFilter;
 
 class UserDataController extends \yii\rest\Controller
 {
