@@ -377,8 +377,6 @@ class OrderForUserController extends \yii\rest\Controller
             $result['error'] = ArrayHelper::merge($modelTransactionSession->getErrors(), $modelTransactionSessionOrder->getErrors(), $modelPromoItem->getErrors());
         }
 
-        $result['asd'] = $post;
-
         return $result;
     }
 
