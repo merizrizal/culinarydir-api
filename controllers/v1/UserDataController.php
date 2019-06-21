@@ -36,7 +36,7 @@ class UserDataController extends \yii\rest\Controller
     {
         $modelTransactionSession = TransactionSession::find()
             ->select([
-                'transaction_session.id', 'transaction_session.status', 'transaction_session.created_at', 'transaction_session.total_price',
+                'transaction_session.id', 'transaction_session.status', 'transaction_session.created_at', 'transaction_session.total_price', 'transaction_session.discount_value',
                 'business.id as business_id', 'business.unique_name as business_unique_name', 'business.name as business_name',
                 'business_location.address as business_address', 'business_location.address_type as business_address_type',
                 'business_image.image as business_image'
