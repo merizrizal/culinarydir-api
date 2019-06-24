@@ -1,6 +1,6 @@
 <?php
 
-namespace api\controllers\v1;
+namespace api\controllers\v1\user;
 
 use core\models\TransactionSession;
 use yii\data\ActiveDataProvider;
