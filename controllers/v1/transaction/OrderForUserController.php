@@ -362,13 +362,13 @@ class OrderForUserController extends \yii\rest\Controller
                 $result['order']['detail'][$i]['note'] = $dataTransactionItem->note;
             }
 
-            if ($post['business_delivery_special'] === 'true') {
+//             if ($post['business_delivery_special'] === 'true') {
 
-                $client = new \ElephantIO\Client(new \ElephantIO\Engine\SocketIO\Version2X(\Yii::$app->params['socketIOServiceAddress']));
-                $client->initialize();
-                $client->emit('broadcast', $result['order']);
-                $client->close();
-            }
+//                 $client = new \ElephantIO\Client(new \ElephantIO\Engine\SocketIO\Version2X(\Yii::$app->params['socketIOServiceAddress']));
+//                 $client->initialize();
+//                 $client->emit('broadcast', $result['order']);
+//                 $client->close();
+//             }
         } else {
 
             $transaction->rollBack();
