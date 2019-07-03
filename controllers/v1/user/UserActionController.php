@@ -57,12 +57,19 @@ class UserActionController extends \yii\rest\Controller
                 ->joinWith(['transactionItems'])
                 ->andWhere(['transaction_session.id' => $post['id']])
                 ->one();
+            
+            $totalPrice = 0;
+            
+            foreach ($oldModelTransaction->transactionItems as $dataTransactionItem) {
+                
+                $totalPrice += $dataTransactionItem->price * $dataTransactionItem->amount;
+            }
 
             $modelTransactionSession = new TransactionSession();
             $modelTransactionSession->user_ordered = $oldModelTransaction->user_ordered;
             $modelTransactionSession->business_id = $oldModelTransaction->business_id;
             $modelTransactionSession->note = !empty($oldModelTransaction->note) ? $oldModelTransaction->note : null;
-            $modelTransactionSession->total_price = $oldModelTransaction->total_price;
+            $modelTransactionSession->total_price = $totalPrice;
             $modelTransactionSession->total_amount = $oldModelTransaction->total_amount;
             $modelTransactionSession->order_id = substr(str_shuffle("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"), 0, 6) . '_' . time();
             $modelTransactionSession->status = 'Open';
