@@ -11,7 +11,6 @@ use yii\filters\VerbFilter;
 use yii\helpers\ArrayHelper;
 use yii\web\NotFoundHttpException;
 
-
 class OrderForUserController extends \yii\rest\Controller
 {
     /**
@@ -295,7 +294,7 @@ class OrderForUserController extends \yii\rest\Controller
 
             $modelTransactionSession->promo_item_id = !empty($post['promo_item_id']) ? $post['promo_item_id'] : null;
             $modelTransactionSession->note = !empty($post['note']) ? $post['note'] : null;
-            $modelTransactionSession->status = 'New';
+            $modelTransactionSession->status = $post['business_delivery_special'] === 'true' ? 'New' : 'Finish';
 
             if (!empty($modelTransactionSession->promo_item_id)) {
 
