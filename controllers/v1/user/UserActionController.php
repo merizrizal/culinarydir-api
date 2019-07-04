@@ -5,6 +5,7 @@ namespace api\controllers\v1\user;
 use yii\filters\VerbFilter;
 use core\models\TransactionSession;
 use core\models\TransactionItem;
+use core\models\TransactionSessionDelivery;
 
 class UserActionController extends \yii\rest\Controller
 {
@@ -20,6 +21,7 @@ class UserActionController extends \yii\rest\Controller
                     'class' => VerbFilter::className(),
                     'actions' => [
                         'reorder' => ['POST'],
+                        'get-order-driver' => ['GET']
                     ],
                 ],
             ]);
@@ -108,6 +110,40 @@ class UserActionController extends \yii\rest\Controller
             }
         }
 
+        return $result;
+    }
+    
+    public function actionGetOrderDriver()
+    {
+        $result = [];
+        
+        $get = \Yii::$app->request->get();
+        $result['success'] = false;
+        
+        if (!empty($get['transaction_session_id'])) {
+        
+            $modelTransactionSessionDelivery = TransactionSessionDelivery::find()
+                ->joinWith([
+                    'transactionSession',
+                    'driver',
+                    'driver.userPerson.person'
+                ])
+                ->andWhere(['transaction_session_id' => $get['transaction_session_id']])
+                ->asArray()->one();
+            
+            $result['success'] = true;
+            $result['status'] = $modelTransactionSessionDelivery['transactionSession']['status'];
+            $result['delivery_fee'] = $modelTransactionSessionDelivery['total_delivery_fee'];
+            $result['total_price'] = $modelTransactionSessionDelivery['transactionSession']['total_price'];
+            $result['grand_total'] = $result['delivery_fee'] + $result['total_price'];
+            $result['driver_fullname'] = $modelTransactionSessionDelivery['driver']['full_name'];
+            $result['driver_photo'] = $modelTransactionSessionDelivery['driver']['image'];
+            $result['driver_phone'] = $modelTransactionSessionDelivery['driver']['userPerson']['person']['phone'];
+        } else {
+            
+            $result['message'] = 'transaction_session_id tidak ditemukan';
+        }
+        
         return $result;
     }
 }

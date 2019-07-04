@@ -2,7 +2,6 @@
 
 namespace api\controllers\v1\transaction;
 
-use Faker\Factory;
 use core\models\TransactionCanceledByDriver;
 use core\models\TransactionSession;
 use core\models\TransactionSessionDelivery;
@@ -252,13 +251,11 @@ class OrderForDriverController extends \yii\rest\Controller
 
                     if (!empty($post['driver_user_id'])) {
 
-                        $faker = Factory::create();
-
                         $modelTransactionSessionDelivery = new TransactionSessionDelivery();
                         $modelTransactionSessionDelivery->transaction_session_id = $modelTransactionSession->id;
                         $modelTransactionSessionDelivery->driver_id = $post['driver_user_id'];
-                        $modelTransactionSessionDelivery->total_distance = $faker->randomNumber(2);
-                        $modelTransactionSessionDelivery->total_delivery_fee = $faker->randomNumber(6);
+                        $modelTransactionSessionDelivery->total_distance = $post['distance'];
+                        $modelTransactionSessionDelivery->total_delivery_fee = $post['delivery_fee'];
 
                         if (($flag = $modelTransactionSessionDelivery->save())) {
 
