@@ -32,13 +32,13 @@ class UserDataController extends \yii\rest\Controller
             ]);
     }
 
-    public function actionOrderHistoryList($id)
+    public function actionOrderHistoryList($user_id)
     {
         $modelTransactionSession = TransactionSession::find()
             ->select([
                 'transaction_session.id', 'transaction_session.status', 'transaction_session.created_at', 'transaction_session.total_price', 'transaction_session.discount_value',
-                'business.id as business_id', 'business.unique_name as business_unique_name', 'business.name as business_name',
-                'business_location.address as business_address', 'business_location.address_type as business_address_type',
+                'transaction_session_delivery.total_delivery_fee', 'business.id as business_id', 'business.unique_name as business_unique_name',
+                'business.name as business_name', 'business_location.address as business_address', 'business_location.address_type as business_address_type',
                 'business_image.image as business_image'
             ])
             ->joinWith([
@@ -55,9 +55,13 @@ class UserDataController extends \yii\rest\Controller
                 'business.businessLocation' => function ($query) {
 
                     $query->select(['business_location.business_id']);
+                },
+                'transactionSessionDelivery' => function ($query) {
+                    
+                    $query->select(['transaction_session_delivery.transaction_session_id']);
                 }
             ])
-            ->andWhere(['transaction_session.user_ordered' => $id])
+            ->andWhere(['transaction_session.user_ordered' => $user_id])
             ->orderBy(['transaction_session.created_at' => SORT_DESC])
             ->distinct()
             ->asArray();
