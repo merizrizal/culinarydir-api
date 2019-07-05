@@ -5,7 +5,6 @@ namespace api\controllers\v1\transaction;
 use core\models\PromoItem;
 use core\models\TransactionItem;
 use core\models\TransactionSession;
-use core\models\TransactionSessionDelivery;
 use core\models\TransactionSessionOrder;
 use frontend\components\AddressType;
 use yii\filters\VerbFilter;
