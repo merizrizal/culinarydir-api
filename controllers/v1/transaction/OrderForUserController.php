@@ -511,44 +511,31 @@ class OrderForUserController extends \yii\rest\Controller
         return $result;
     }
     
-    public function actionGetOrderDriver()
+    public function actionGetOrderDriver($id)
     {
         $result = [];
         
-        $get = \Yii::$app->request->get();
-        $result['success'] = false;
+        $modelTransactionSession = TransactionSession::find()
+            ->joinWith([
+                'transactionSessionDelivery',
+                'transactionSessionDelivery.driver',
+                'transactionSessionDelivery.driver.userPerson.person'
+            ])
+            ->andWhere(['transaction_session.id' => $id])
+            ->asArray()->one();
         
-        if (!empty($get['transaction_session_id'])) {
+        if (!empty($modelTransactionSession)) {
+        
+            $result['status'] = $modelTransactionSession['status'];
             
-            $modelTransactionSession = TransactionSession::find()
-                ->joinWith([
-                    'transactionSessionDelivery',
-                    'transactionSessionDelivery.driver',
-                    'transactionSessionDelivery.driver.userPerson.person'
-                ])
-                ->andWhere(['transaction_session.id' => $get['transaction_session_id']])
-                ->asArray()->one();
-            
-            if (!empty($modelTransactionSession)) {
-            
-                $result['success'] = true;
-                $result['status'] = $modelTransactionSession['status'];
+            if (!empty($modelTransactionSession['transactionSessionDelivery'])) {
                 
-                if (!empty($modelTransactionSession['transactionSessionDelivery'])) {
-                    
-                    $result['delivery_fee'] = $modelTransactionSession['transactionSessionDelivery']['total_delivery_fee'];
-                    $result['total_price'] = $modelTransactionSession['total_price'];
-                    $result['driver_fullname'] = $modelTransactionSession['transactionSessionDelivery']['driver']['full_name'];
-                    $result['driver_photo'] = $modelTransactionSession['transactionSessionDelivery']['driver']['image'];
-                    $result['driver_phone'] = $modelTransactionSession['transactionSessionDelivery']['driver']['userPerson']['person']['phone'];
-                }
-            } else {
-                
-                $result['message'] = 'transaction_session_id tidak ditemukan';
+                $result['delivery_fee'] = $modelTransactionSession['transactionSessionDelivery']['total_delivery_fee'];
+                $result['total_price'] = $modelTransactionSession['total_price'];
+                $result['driver_fullname'] = $modelTransactionSession['transactionSessionDelivery']['driver']['full_name'];
+                $result['driver_photo'] = $modelTransactionSession['transactionSessionDelivery']['driver']['image'];
+                $result['driver_phone'] = $modelTransactionSession['transactionSessionDelivery']['driver']['userPerson']['person']['phone'];
             }
-        } else {
-            
-            $result['message'] = 'transaction_session_id tidak boleh kosong';
         }
         
         return $result;
