@@ -30,6 +30,7 @@ class OrderForDriverController extends \yii\rest\Controller
                         'send-order' => ['POST'],
                         'finish-order' => ['POST'],
                         'new-order' => ['POST'],
+                        'driver-not-found' => ['POST'],
                         'get-list-order-by-driver' => ['POST']
                     ],
                 ],
@@ -410,6 +411,20 @@ class OrderForDriverController extends \yii\rest\Controller
             $result['success'] = $this->updateStatusOrder(\Yii::$app->request->post()['order_id'], 'New');
         }
 
+        return $result;
+    }
+    
+    public function actionDriverNotFound()
+    {
+        $result = [];
+        
+        $result['success'] = false;
+        
+        if (!empty(\Yii::$app->request->post()['order_id'])) {
+            
+            $result['success'] = $this->updateStatusOrder(\Yii::$app->request->post()['order_id'], 'Cancel');
+        }
+        
         return $result;
     }
 
