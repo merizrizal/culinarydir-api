@@ -246,8 +246,8 @@ class OrderForUserController extends \yii\rest\Controller
         return $result;
     }
 
-    public function actionCalculateDeliveryFee() {
-
+    public function actionCalculateDeliveryFee()
+    {
         $post = \Yii::$app->request->post();
 
         $result = [];
