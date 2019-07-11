@@ -408,34 +408,27 @@ class IdentityController extends \yii\rest\Controller
         return $result;
     }
 
-    public function actionGetDriverProfile()
+    public function actionGetDriverProfile($id)
     {
         $result = [];
-
         $result['success'] = false;
 
-        if (!empty(\Yii::$app->request->post()['driver_user_id'])) {
+        $modelUser = User::find()
+            ->joinWith(['userPerson.person'])
+            ->andWhere(['user.id' => $id])
+            ->asArray()->one();
 
-            $modelUser = User::find()
-                ->joinWith(['userPerson.person'])
-                ->andWhere(['user.id' => \Yii::$app->request->post()['driver_user_id']])
-                ->asArray()->one();
+        if (!empty($modelUser)) {
 
-            if (!empty($modelUser)) {
-
-                $result['success'] = true;
-                $result['full_name'] = $modelUser['full_name'];
-                $result['email'] = $modelUser['email'];
-                $result['image'] = $modelUser['image'];
-                $result['phone'] = $modelUser['userPerson']['person']['phone'];
-                $result['about_me'] = $modelUser['userPerson']['person']['about_me'];
-            } else {
-
-                $result['message'] = 'Driver tidak ditemukan';
-            }
+            $result['success'] = true;
+            $result['full_name'] = $modelUser['full_name'];
+            $result['email'] = $modelUser['email'];
+            $result['image'] = $modelUser['image'];
+            $result['phone'] = $modelUser['userPerson']['person']['phone'];
+            $result['about_me'] = $modelUser['userPerson']['person']['about_me'];
         } else {
 
-            $result['message'] = 'Username driver kosong.';
+            $result['message'] = 'Driver tidak ditemukan';
         }
 
         return $result;
