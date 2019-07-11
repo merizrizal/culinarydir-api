@@ -32,7 +32,7 @@ class IdentityController extends \yii\rest\Controller
                         'request-reset-password-token' => ['POST'],
                         'token-verification' => ['POST'],
                         'reset-password' => ['POST'],
-                        'get-driver-profile' => ['POST']
+                        'get-driver-profile' => ['GET']
                     ],
                 ],
             ]);
