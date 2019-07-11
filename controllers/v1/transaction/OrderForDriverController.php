@@ -251,12 +251,20 @@ class OrderForDriverController extends \yii\rest\Controller
                 if (!empty($modelTransactionSession)) {
 
                     if (!empty($post['driver_user_id'])) {
+                        
+                        $modelTransactionSessionDelivery = TransactionSessionDelivery::find()
+                            ->andWhere(['transaction_session_id' => $modelTransactionSession->id])
+                            ->one();
+                        
+                        if (empty($modelTransactionSessionDelivery)) {
 
-                        $modelTransactionSessionDelivery = new TransactionSessionDelivery();
-                        $modelTransactionSessionDelivery->transaction_session_id = $modelTransactionSession->id;
+                            $modelTransactionSessionDelivery = new TransactionSessionDelivery();
+                            $modelTransactionSessionDelivery->transaction_session_id = $modelTransactionSession->id;
+                            $modelTransactionSessionDelivery->total_distance = $post['distance'];
+                            $modelTransactionSessionDelivery->total_delivery_fee = $post['delivery_fee'];
+                        }
+                        
                         $modelTransactionSessionDelivery->driver_id = $post['driver_user_id'];
-                        $modelTransactionSessionDelivery->total_distance = $post['distance'];
-                        $modelTransactionSessionDelivery->total_delivery_fee = $post['delivery_fee'];
 
                         if (($flag = $modelTransactionSessionDelivery->save())) {
 
