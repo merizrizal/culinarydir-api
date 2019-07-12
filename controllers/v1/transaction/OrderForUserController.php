@@ -251,9 +251,14 @@ class OrderForUserController extends \yii\rest\Controller
         $post = \Yii::$app->request->post();
 
         $result = [];
-
-        $result['delivery_fee'] = round($post['distance'] / 1000) * 2500;
-
+        
+        $result['delivery_fee'] = 9000;
+        
+        if ($post['distance'] > 3000) {
+            
+            $result['delivery_fee'] += ceil(($post['distance'] - 3000) / 1000) * 2000;
+        }
+        
         return $result;
     }
 
