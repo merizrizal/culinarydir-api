@@ -324,7 +324,32 @@ class OrderForUserController extends \yii\rest\Controller
                 }
             }
 
-            $flag = $modelTransactionSession->save();
+            if (($flag = $modelTransactionSession->save())) {
+                
+                if ($post['business_delivery_special'] === 'false') {
+                
+                    $dataDelivery = [];
+                    $dataPayment = [];
+                    
+                    foreach ($modelTransactionSession->business->businessDeliveries as $dataBusinessDelivery) {
+                        
+                        if ($dataBusinessDelivery->id == $modelTransactionSessionOrder->business_delivery_id) {
+                            
+                            $dataDelivery = $dataBusinessDelivery;
+                            break;
+                        }
+                    }
+                    
+                    foreach ($modelTransactionSession->business->businessPayments as $dataBusinessPayment) {
+                        
+                        if ($dataBusinessPayment->id == $modelTransactionSessionOrder->business_payment_id) {
+                            
+                            $dataPayment = $dataBusinessPayment;
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         if ($flag) {
@@ -358,6 +383,11 @@ class OrderForUserController extends \yii\rest\Controller
             $result['order']['header']['distance'] = $post['distance'];
             $result['order']['header']['delivery_fee'] = $post['delivery_fee'];
             $result['order']['header']['order_status'] = $modelTransactionSession->status;
+            
+            if ($post['business_delivery_special'] === 'false') {
+            
+                $result['order']['message_order'] = 'Halo ' . $modelTransactionSession['business']['name'] . ',\nsaya ' . $result['order']['header']['customer_name'] . ' (via Asikmakan) ingin memesan:\n\n';
+            }
 
             foreach ($modelTransactionSession->transactionItems as $i => $dataTransactionItem) {
 
@@ -366,6 +396,30 @@ class OrderForUserController extends \yii\rest\Controller
                 $result['order']['detail'][$i]['price'] = $dataTransactionItem->price;
                 $result['order']['detail'][$i]['amount'] = $dataTransactionItem->amount;
                 $result['order']['detail'][$i]['note'] = $dataTransactionItem->note;
+                
+                if ($post['business_delivery_special'] === 'false') {
+                
+                    $result['order']['message_order'] .= $dataTransactionItem->amount . 'x ' . $dataTransactionItem->businessProduct->name . ' @' . \Yii::$app->formatter->asCurrency($dataTransactionItem->price);
+                    $result['order']['message_order'] .= (!empty($dataTransactionItem->note) ? '\n' . $dataTransactionItem->note : '') . '\n\n';
+                }
+            }
+            
+            if ($post['business_delivery_special'] === 'false') {
+            
+                $result['order']['message_order'] .= '*Subtotal: ' . \Yii::$app->formatter->asCurrency($modelTransactionSession->total_price) . '*';
+                
+                if (!empty($modelTransactionSession->discount_value)) {
+                    
+                    $subtotal = $modelTransactionSession->total_price - $modelTransactionSession->discount_value;
+                    $result['order']['message_order'] .= '\n\n*Promo: ' . \Yii::$app->formatter->asCurrency($modelTransactionSession->discount_value) . '*';
+                    $result['order']['message_order'] .= '\n\n*Grand Total: ' . \Yii::$app->formatter->asCurrency($subtotal < 0 ? 0 : $subtotal) . '*';
+                }
+                
+                $result['order']['message_order'] .= !empty($dataDelivery['note']) ? '\n\n' . $dataDelivery['note'] : '';
+                $result['order']['message_order'] .= !empty($dataPayment['note']) ? '\n\n' . $dataPayment['note'] : '';
+                $result['order']['message_order'] .= !empty($modelTransactionSession->note) ? '\n\nCatatan: ' . $modelTransactionSession->note : '';
+                
+                $result['order']['message_order'] = str_replace('%5Cn', '%0A', str_replace('+', '%20', urlencode($result['order']['message_order'])));
             }
         } else {
 
