@@ -418,8 +418,6 @@ class OrderForUserController extends \yii\rest\Controller
                 $result['order']['message_order'] .= !empty($dataDelivery['note']) ? '\n\n' . $dataDelivery['note'] : '';
                 $result['order']['message_order'] .= !empty($dataPayment['note']) ? '\n\n' . $dataPayment['note'] : '';
                 $result['order']['message_order'] .= !empty($modelTransactionSession->note) ? '\n\nCatatan: ' . $modelTransactionSession->note : '';
-                
-                $result['order']['message_order'] = str_replace('%5Cn', '%0A', str_replace('+', '%20', urlencode($result['order']['message_order'])));
             }
         } else {
 
