@@ -443,6 +443,8 @@ class OrderForDriverController extends \yii\rest\Controller
         $result['success'] = false;
 
         $post = \Yii::$app->request->post();
+        
+        \Yii::$app->formatter->timeZone = 'Asia/Jakarta';
 
         if (!empty($post['order_date']) && !empty($post['driver_id'])) {
 
@@ -458,6 +460,7 @@ class OrderForDriverController extends \yii\rest\Controller
                 ->andWhere(['date(transaction_session.created_at)' => $post['order_date']])
                 ->andWhere(['transaction_session_delivery.driver_id' => $post['driver_id']])
                 ->andWhere(['transaction_session.status' => ['Finish', 'Cancel']])
+                ->orderBy(['transaction_session.created_at' => SORT_DESC])
                 ->asArray()->all();
 
             if (!empty($modelTransactionSession)) {
@@ -504,6 +507,8 @@ class OrderForDriverController extends \yii\rest\Controller
 
             $result['message'] = 'Parameter order_date & order_id tidak boleh kosong';
         }
+        
+        \Yii::$app->formatter->timeZone = 'UTC';
 
         return $result;
     }
