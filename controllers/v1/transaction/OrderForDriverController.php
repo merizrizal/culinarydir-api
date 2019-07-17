@@ -77,6 +77,7 @@ class OrderForDriverController extends \yii\rest\Controller
                     $result['detail'][$i]['price'] = $dataTransactionItem['price'];
                     $result['detail'][$i]['amount'] = $dataTransactionItem['amount'];
                     $result['detail'][$i]['note'] = $dataTransactionItem['note'];
+                    $result['detail'][$i]['total'] = $dataTransactionItem['price'] * $dataTransactionItem['amount'];
                 }
 
                 $result['success'] = true;
