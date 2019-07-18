@@ -57,7 +57,10 @@ class IdentityController extends \yii\rest\Controller
 
             $model->getUser()->login_token = substr($randomString, 0, 15) . $model->getUser()->id . $randomStringHalf . '_' . time();
 
-            if (!($flag = $model->getUser()->save())) {
+            if (($flag = $model->getUser()->save())) {
+
+
+            } else {
 
                 $result['error'] = $model->getUser()->getErrors();
             }
