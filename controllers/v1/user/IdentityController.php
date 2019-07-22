@@ -12,6 +12,7 @@ use frontend\models\RequestResetPassword;
 use frontend\models\ResetPassword;
 use frontend\models\UserRegister;
 use yii\filters\VerbFilter;
+use core\models\UserRole;
 
 class IdentityController extends \yii\rest\Controller
 {
@@ -204,12 +205,7 @@ class IdentityController extends \yii\rest\Controller
         $transaction = \Yii::$app->db->beginTransaction();
         $flag = false;
 
-        $userLevel = UserLevel::find()
-            ->andWhere(['nama_level' => 'User'])
-            ->asArray()->one();
-
         $modelUserRegister = new UserRegister();
-        $modelUserRegister->user_level_id = $userLevel['id'];
         $modelUserRegister->email = $post['email'];
         $modelUserRegister->username = $post['username'];
         $modelUserRegister->full_name = $post['first_name'] . ' ' . $post['last_name'];
@@ -223,82 +219,97 @@ class IdentityController extends \yii\rest\Controller
 
             if (($flag = $modelUserRegister->save())) {
 
-                $modelPerson = new Person();
-                $modelPerson->first_name = $post['first_name'];
-                $modelPerson->last_name = $post['last_name'];
-                $modelPerson->email = $post['email'];
-                $modelPerson->phone = !empty($post['phone']) ? $post['phone'] : null;
-                $modelPerson->city_id = !empty($post['city_id']) ? $post['city_id'] : null;
+                $userLevel = UserLevel::find()
+                    ->andWhere(['nama_level' => 'User'])
+                    ->asArray()->one();
 
-                if (($flag = $modelPerson->save())) {
+                $modelUserRole = new UserRole();
+                $modelUserRole->user_id = $modelUserRegister->id;
+                $modelUserRole->user_level_id = $userLevel['id'];
+                $modelUserRole->unique_id = $modelUserRegister->id . '-' . $userLevel['id'];
 
-                    $modelUserPerson = new UserPerson();
+                if (($flag = $modelUserRole->save())) {
 
-                    $modelUserPerson->user_id = $modelUserRegister->id;
-                    $modelUserPerson->person_id = $modelPerson->id;
+                    $modelPerson = new Person();
+                    $modelPerson->first_name = $post['first_name'];
+                    $modelPerson->last_name = $post['last_name'];
+                    $modelPerson->email = $post['email'];
+                    $modelPerson->phone = !empty($post['phone']) ? $post['phone'] : null;
+                    $modelPerson->city_id = !empty($post['city_id']) ? $post['city_id'] : null;
 
-                    if (($flag = $modelUserPerson->save())) {
+                    if (($flag = $modelPerson->save())) {
 
-                        if (!empty($post['socmed_id']) && !empty($post['socmed'])) {
+                        $modelUserPerson = new UserPerson();
 
-                            $modelUserSocialMedia = new UserSocialMedia();
-                            $modelUserSocialMedia->user_id = $modelUserRegister->id;
+                        $modelUserPerson->user_id = $modelUserRegister->id;
+                        $modelUserPerson->person_id = $modelPerson->id;
 
-                            if (strtolower($post['socmed']) === 'google') {
+                        if (($flag = $modelUserPerson->save())) {
 
-                                $modelUserSocialMedia->google_id = $post['socmed_id'];
-                            } else if (strtolower($post['socmed']) === 'facebook') {
+                            if (!empty($post['socmed_id']) && !empty($post['socmed'])) {
 
-                                $modelUserSocialMedia->facebook_id = $post['socmed_id'];
-                            }
+                                $modelUserSocialMedia = new UserSocialMedia();
+                                $modelUserSocialMedia->user_id = $modelUserRegister->id;
 
-                            if (($flag = $modelUserSocialMedia->save())) {
+                                if (strtolower($post['socmed']) === 'google') {
 
-                                \Yii::$app->mailer->compose(['html' => 'register_confirmation'], [
-                                    'email' => $post['email'],
-                                    'full_name' => $post['first_name'] . ' ' . $post['last_name'],
-                                    'socmed' => strtolower($post['socmed']) === 'google' ? 'Google' : 'Facebook',
-                                    'isFromApi' => true
-                                ])
-                                ->setFrom([\Yii::$app->params['supportEmail'] => \Yii::$app->name . ' Support'])
-                                ->setTo($post['email'])
-                                ->setSubject('Welcome to ' . \Yii::$app->name)
-                                ->send();
+                                    $modelUserSocialMedia->google_id = $post['socmed_id'];
+                                } else if (strtolower($post['socmed']) === 'facebook') {
+
+                                    $modelUserSocialMedia->facebook_id = $post['socmed_id'];
+                                }
+
+                                if (($flag = $modelUserSocialMedia->save())) {
+
+                                    \Yii::$app->mailer->compose(['html' => 'register_confirmation'], [
+                                        'email' => $post['email'],
+                                        'full_name' => $post['first_name'] . ' ' . $post['last_name'],
+                                        'socmed' => strtolower($post['socmed']) === 'google' ? 'Google' : 'Facebook',
+                                        'isFromApi' => true
+                                    ])
+                                    ->setFrom([\Yii::$app->params['supportEmail'] => \Yii::$app->name . ' Support'])
+                                    ->setTo($post['email'])
+                                    ->setSubject('Welcome to ' . \Yii::$app->name)
+                                    ->send();
+                                } else {
+
+                                    $result['error'] = $modelUserSocialMedia->getErrors();
+                                }
                             } else {
 
-                                $result['error'] = $modelUserSocialMedia->getErrors();
+                                $randomString = \Yii::$app->security->generateRandomString();
+                                $randomStringHalf = substr($randomString, 16);
+                                $modelUserRegister->not_active = true;
+                                $modelUserRegister->account_activation_token = substr($randomString, 0, 15) . $modelUserRegister->id . $randomStringHalf . '_' . time();
+
+                                if (($flag = $modelUserRegister->save())) {
+
+                                    \Yii::$app->mailer->compose(['html' => 'account_activation'], [
+                                        'email' => $post['email'],
+                                        'full_name' => $post['first_name'] . ' ' . $post['last_name'],
+                                        'userToken' => $modelUserRegister->account_activation_token,
+                                        'isFromApi' => true
+                                    ])
+                                    ->setFrom([\Yii::$app->params['supportEmail'] => \Yii::$app->name . ' Support'])
+                                    ->setTo($post['email'])
+                                    ->setSubject(\Yii::$app->name . ' Account Activation')
+                                    ->send();
+                                } else {
+
+                                    $result['error'] = $modelUserRegister->getErrors();
+                                }
                             }
                         } else {
 
-                            $randomString = \Yii::$app->security->generateRandomString();
-                            $randomStringHalf = substr($randomString, 16);
-                            $modelUserRegister->not_active = true;
-                            $modelUserRegister->account_activation_token = substr($randomString, 0, 15) . $modelUserRegister->id . $randomStringHalf . '_' . time();
-
-                            if (($flag = $modelUserRegister->save())) {
-
-                                \Yii::$app->mailer->compose(['html' => 'account_activation'], [
-                                    'email' => $post['email'],
-                                    'full_name' => $post['first_name'] . ' ' . $post['last_name'],
-                                    'userToken' => $modelUserRegister->account_activation_token,
-                                    'isFromApi' => true
-                                ])
-                                ->setFrom([\Yii::$app->params['supportEmail'] => \Yii::$app->name . ' Support'])
-                                ->setTo($post['email'])
-                                ->setSubject(\Yii::$app->name . ' Account Activation')
-                                ->send();
-                            } else {
-
-                                $result['error'] = $modelUserRegister->getErrors();
-                            }
+                            $result['error'] = $modelUserPerson->getErrors();
                         }
                     } else {
 
-                        $result['error'] = $modelUserPerson->getErrors();
+                        $result['error'] = $modelPerson->getErrors();
                     }
                 } else {
 
-                    $result['error'] = $modelPerson->getErrors();
+                    $result['error'] = $modelUserRole->getErrors();
                 }
             } else {
 
