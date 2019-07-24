@@ -226,9 +226,9 @@ class IdentityController extends \yii\rest\Controller
                     ->asArray()->one();
 
                 $modelUserRole = new UserRole();
-                $modelUserRole->unique_id = $modelUserRegister->id . '-' . $userLevel['id'];
                 $modelUserRole->user_id = $modelUserRegister->id;
                 $modelUserRole->user_level_id = $userLevel['id'];
+                $modelUserRole->unique_id = $modelUserRegister->id . '-' . $userLevel['id'];
                 $modelUserRole->is_active = true;
 
                 if (($flag = $modelUserRole->save())) {
