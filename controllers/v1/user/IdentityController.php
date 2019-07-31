@@ -57,10 +57,7 @@ class IdentityController extends \yii\rest\Controller
 
             $model->getUser()->login_token = substr($randomString, 0, 15) . $model->getUser()->id . $randomStringHalf . '_' . time();
 
-            if (($flag = $model->getUser()->save())) {
-
-
-            } else {
+            if (!($flag = $model->getUser()->save())) {
 
                 $result['error'] = $model->getUser()->getErrors();
             }
@@ -77,6 +74,7 @@ class IdentityController extends \yii\rest\Controller
             $result['username'] = $model->getUser()->username;
             $result['email'] = $model->getUser()->email;
             $result['login_token'] = $model->getUser()->login_token;
+        } else {
 
             $result['success'] = false;
             $result['message'] = 'Login gagal';
