@@ -78,9 +78,8 @@ class IdentityController extends \yii\rest\Controller
             $result['message'] = 'Login Berhasil';
             $result['user_id'] = $model->getUser()->id;
             $result['username'] = $model->getUser()->username;
+            $result['email'] = $model->getUser()->email;
             $result['login_token'] = $model->getUser()->login_token;
-            $result['phone'] = $model->getUser()->userPerson->person->phone;
-        } else {
 
             $result['success'] = false;
             $result['message'] = 'Login gagal';
@@ -182,6 +181,7 @@ class IdentityController extends \yii\rest\Controller
                 $result['message'] = 'Login dengan ' . $post['socmed'] . ' berhasil';
                 $result['user_id'] = $model->getUser()->id;
                 $result['username'] = $model->getUser()->username;
+                $result['email'] = $model->getUser()->email;
                 $result['login_token'] = $model->getUser()->login_token;
                 $result['socmed_email'] = $post['socmed_email'];
                 $result['socmed_id'] = $post['socmed_id'];
