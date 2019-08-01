@@ -53,7 +53,7 @@ class IdentityController extends \yii\rest\Controller
 
         $flag = false;
 
-        if (($flag = $model->login())) {
+        if (($flag = $model->login($post['app_name']))) {
 
             $randomString = \Yii::$app->security->generateRandomString();
             $randomStringHalf = substr($randomString, 16);
@@ -154,7 +154,7 @@ class IdentityController extends \yii\rest\Controller
                 $model->useSocmed = true;
                 $model->login_id = $post['socmed_email'];
 
-                if (($flag = $model->login())) {
+                if (($flag = $model->login($post['app_name']))) {
 
                     $randomString = \Yii::$app->security->generateRandomString();
                     $randomStringHalf = substr($randomString, 16);
