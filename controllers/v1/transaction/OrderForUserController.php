@@ -251,14 +251,14 @@ class OrderForUserController extends \yii\rest\Controller
         $post = \Yii::$app->request->post();
 
         $result = [];
-        
+
         $result['delivery_fee'] = 9000;
-        
+
         if ($post['distance'] > 3000) {
-            
+
             $result['delivery_fee'] += ceil(($post['distance'] - 3000) / 1000) * 2000;
         }
-        
+
         return $result;
     }
 
@@ -325,25 +325,25 @@ class OrderForUserController extends \yii\rest\Controller
             }
 
             if (($flag = $modelTransactionSession->save())) {
-                
+
                 if ($post['business_delivery_special'] === 'false') {
-                
+
                     $dataDelivery = [];
                     $dataPayment = [];
-                    
+
                     foreach ($modelTransactionSession->business->businessDeliveries as $dataBusinessDelivery) {
-                        
+
                         if ($dataBusinessDelivery->id == $modelTransactionSessionOrder->business_delivery_id) {
-                            
+
                             $dataDelivery = $dataBusinessDelivery;
                             break;
                         }
                     }
-                    
+
                     foreach ($modelTransactionSession->business->businessPayments as $dataBusinessPayment) {
-                        
+
                         if ($dataBusinessPayment->id == $modelTransactionSessionOrder->business_payment_id) {
-                            
+
                             $dataPayment = $dataBusinessPayment;
                             break;
                         }
@@ -383,9 +383,9 @@ class OrderForUserController extends \yii\rest\Controller
             $result['order']['header']['distance'] = $post['distance'];
             $result['order']['header']['delivery_fee'] = $post['delivery_fee'];
             $result['order']['header']['order_status'] = $modelTransactionSession->status;
-            
+
             if ($post['business_delivery_special'] === 'false') {
-            
+
                 $result['order']['message_order'] = 'Halo ' . $modelTransactionSession['business']['name'] . ',\nsaya ' . $result['order']['header']['customer_name'] . ' (via Asikmakan) ingin memesan:\n\n';
             }
 
@@ -396,25 +396,25 @@ class OrderForUserController extends \yii\rest\Controller
                 $result['order']['detail'][$i]['price'] = $dataTransactionItem->price;
                 $result['order']['detail'][$i]['amount'] = $dataTransactionItem->amount;
                 $result['order']['detail'][$i]['note'] = $dataTransactionItem->note;
-                
+
                 if ($post['business_delivery_special'] === 'false') {
-                
+
                     $result['order']['message_order'] .= $dataTransactionItem->amount . 'x ' . $dataTransactionItem->businessProduct->name . ' @' . \Yii::$app->formatter->asCurrency($dataTransactionItem->price);
                     $result['order']['message_order'] .= (!empty($dataTransactionItem->note) ? '\n' . $dataTransactionItem->note : '') . '\n\n';
                 }
             }
-            
+
             if ($post['business_delivery_special'] === 'false') {
-            
+
                 $result['order']['message_order'] .= '*Subtotal: ' . \Yii::$app->formatter->asCurrency($modelTransactionSession->total_price) . '*';
-                
+
                 if (!empty($modelTransactionSession->discount_value)) {
-                    
+
                     $subtotal = $modelTransactionSession->total_price - $modelTransactionSession->discount_value;
                     $result['order']['message_order'] .= '\n\n*Promo: ' . \Yii::$app->formatter->asCurrency($modelTransactionSession->discount_value) . '*';
                     $result['order']['message_order'] .= '\n\n*Grand Total: ' . \Yii::$app->formatter->asCurrency($subtotal < 0 ? 0 : $subtotal) . '*';
                 }
-                
+
                 $result['order']['message_order'] .= !empty($dataDelivery['note']) ? '\n\n' . $dataDelivery['note'] : '';
                 $result['order']['message_order'] .= !empty($dataPayment['note']) ? '\n\n' . $dataPayment['note'] : '';
                 $result['order']['message_order'] .= !empty($modelTransactionSession->note) ? '\n\nCatatan: ' . $modelTransactionSession->note : '';
@@ -481,47 +481,47 @@ class OrderForUserController extends \yii\rest\Controller
 
         return $result;
     }
-    
+
     public function actionReorder()
     {
         $result = [];
-        
+
         $post = \Yii::$app->request->post();
-        
+
         $modelTransactionSession = TransactionSession::find()
             ->andWhere(['user_ordered' => $post['user_id']])
             ->andWhere(['status' => 'Open'])
             ->asArray()->one();
-        
+
         if (!empty($modelTransactionSession)) {
-            
+
             if ($modelTransactionSession['id'] == $post['id']) {
-                
+
                 $result['redirect'] = true;
                 $result['business_id'] = $modelTransactionSession['business_id'];
             } else {
-                
+
                 $result['redirect'] = false;
                 $result['message'] = 'Pesan Ulang Gagal' . "\r\n" . 'Silahkan selesaikan pesanan anda terlebih dahulu.' . "\r\n";
             }
         } else {
-            
+
             $transaction = \Yii::$app->db->beginTransaction();
-            
+
             $flag = false;
-            
+
             $oldModelTransaction = TransactionSession::find()
                 ->joinWith(['transactionItems'])
                 ->andWhere(['transaction_session.id' => $post['id']])
                 ->one();
-            
+
             $totalPrice = 0;
-            
+
             foreach ($oldModelTransaction->transactionItems as $dataTransactionItem) {
-                
+
                 $totalPrice += $dataTransactionItem->price * $dataTransactionItem->amount;
             }
-            
+
             $modelTransactionSession = new TransactionSession();
             $modelTransactionSession->user_ordered = $oldModelTransaction->user_ordered;
             $modelTransactionSession->business_id = $oldModelTransaction->business_id;
@@ -530,63 +530,65 @@ class OrderForUserController extends \yii\rest\Controller
             $modelTransactionSession->total_amount = $oldModelTransaction->total_amount;
             $modelTransactionSession->order_id = substr(str_shuffle("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"), 0, 6) . '_' . time();
             $modelTransactionSession->status = 'Open';
-            
+
             if (($flag = $modelTransactionSession->save())) {
-                
+
                 foreach ($oldModelTransaction->transactionItems as $dataTransactionItem) {
-                    
+
                     $modelTransactionItem = new TransactionItem();
                     $modelTransactionItem->transaction_session_id = $modelTransactionSession->id;
                     $modelTransactionItem->business_product_id = $dataTransactionItem->business_product_id;
                     $modelTransactionItem->note = !empty($dataTransactionItem->note) ? $dataTransactionItem->note : null;
                     $modelTransactionItem->price = $dataTransactionItem->price;
                     $modelTransactionItem->amount = $dataTransactionItem->amount;
-                    
+
                     if (!($flag = $modelTransactionItem->save())) {
-                        
+
                         break;
                     }
                 }
             }
-            
+
             if ($flag) {
-                
+
                 $transaction->commit();
-                
+
                 $result['success'] = true;
                 $result['business_id'] = $modelTransactionSession['business_id'];
             } else {
-                
+
                 $transaction->rollBack();
-                
+
                 $result['success'] = false;
                 $result['error'] = $modelTransactionSession->getErrors();
                 $result['message'] = 'Pesan Ulang Gagal' . "\r\n" . 'Silahkan ulangi kembali proses pemesanan anda' . "\r\n";
             }
         }
-        
+
         return $result;
     }
-    
+
     public function actionGetOrderDriver($id)
     {
         $result = [];
-        
+
         $modelTransactionSession = TransactionSession::find()
             ->joinWith([
+                'business.businessLocation',
                 'transactionSessionDelivery',
                 'transactionSessionDelivery.driver',
                 'transactionSessionDelivery.driver.userPerson.person'
             ])
             ->andWhere(['transaction_session.id' => $id])
             ->asArray()->one();
-        
+
         if (!empty($modelTransactionSession)) {
-        
+
             $result['status'] = $modelTransactionSession['status'];
-            
+            $result['business_location'] = $modelTransactionSession['business']['businessLocation']['coordinate'];
+
             if (!empty($modelTransactionSession['transactionSessionDelivery'])) {
-                
+
                 $result['delivery_fee'] = $modelTransactionSession['transactionSessionDelivery']['total_delivery_fee'];
                 $result['total_price'] = $modelTransactionSession['total_price'];
                 $result['driver_fullname'] = $modelTransactionSession['transactionSessionDelivery']['driver']['full_name'];
@@ -594,7 +596,7 @@ class OrderForUserController extends \yii\rest\Controller
                 $result['driver_phone'] = $modelTransactionSession['transactionSessionDelivery']['driver']['userPerson']['person']['phone'];
             }
         }
-        
+
         return $result;
     }
 }
