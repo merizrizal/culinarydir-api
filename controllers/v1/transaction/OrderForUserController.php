@@ -269,7 +269,6 @@ class OrderForUserController extends \yii\rest\Controller
         $result = [];
 
         $modelTransactionSessionOrder = new TransactionSessionOrder();
-
         $modelPromoItem = new PromoItem();
 
         $modelTransactionSession = TransactionSession::find()
@@ -318,7 +317,6 @@ class OrderForUserController extends \yii\rest\Controller
 
                 if (($flag = $modelPromoItem->save())) {
 
-                    $modelTransactionSession->promo_item_id = $modelPromoItem->id;
                     $modelTransactionSession->discount_value = $modelPromoItem->amount;
                     $modelTransactionSession->discount_type = 'Amount';
                 }
@@ -594,6 +592,57 @@ class OrderForUserController extends \yii\rest\Controller
                 $result['driver_fullname'] = $modelTransactionSession['transactionSessionDelivery']['driver']['full_name'];
                 $result['driver_photo'] = $modelTransactionSession['transactionSessionDelivery']['driver']['image'];
                 $result['driver_phone'] = $modelTransactionSession['transactionSessionDelivery']['driver']['userPerson']['person']['phone'];
+            }
+        }
+
+        return $result;
+    }
+
+    public function actionCancelFindingDriver()
+    {
+        $result = [];
+
+        if (!empty(\Yii::$app->request->post())) {
+
+            $transaction = \Yii::$app->db->beginTransaction();
+            $flag = false;
+
+            $modelTransactionSession = TransactionSession::find()
+                ->joinWith(['transactionSessionOrder'])
+                ->andWhere(['transaction_session.id' => \Yii::$app->request->post()['transaction_session_id']])
+                ->one();
+
+            if (($flag = $modelTransactionSession->transactionSessionOrder->delete())) {
+
+                if (!empty($modelTransactionSession->promo_item_id)) {
+
+                    $modelTransactionSession->promo_item_id = null;
+                    $modelTransactionSession->discount_type = null;
+                    $modelTransactionSession->discount_value = null;
+                }
+
+                $modelTransactionSession->note = null;
+                $modelTransactionSession->status = 'Open';
+
+                if (!($flag = $modelTransactionSession->save())) {
+
+                    $result['error'] = $modelTransactionSession->getErrors();
+                }
+            } else {
+
+                $result['error'] = $modelTransactionSession->transactionSessionOrder->getErrors();
+            }
+
+            if ($flag) {
+
+                $result['success'] = true;
+
+                $transaction->commit();
+            } else {
+
+                $result['success'] = false;
+
+                $transaction->rollBack();
             }
         }
 
