@@ -31,7 +31,8 @@ class OrderForDriverController extends \yii\rest\Controller
                         'finish-order' => ['POST'],
                         'new-order' => ['POST'],
                         'driver-not-found' => ['POST'],
-                        'get-list-order-by-driver' => ['POST']
+                        'get-list-order-by-driver' => ['POST'],
+                        'is-order-cancelled' => ['GET']
                     ],
                 ],
             ]);
@@ -512,6 +513,17 @@ class OrderForDriverController extends \yii\rest\Controller
         \Yii::$app->formatter->timeZone = 'UTC';
 
         return $result;
+    }
+
+    public function actionIsOrderCancelled($id)
+    {
+        $modelTransactionSession = TransactionSession::find()
+            ->select('status', 'order_id')
+            ->andWhere(['ilike', 'order_id', $id . '_'])
+            ->andWhere(['<>', 'status', 'Open'])
+            ->asArray()->one();
+
+        return empty($modelTransactionSession);
     }
 
     private function updateStatusOrder($orderId, $status)
