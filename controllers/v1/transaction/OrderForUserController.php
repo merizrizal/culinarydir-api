@@ -33,7 +33,9 @@ class OrderForUserController extends \yii\rest\Controller
                         'order-checkout' => ['POST'],
                         'cancel-order' => ['POST'],
                         'reorder' => ['POST'],
-                        'get-order-driver' => ['GET']
+                        'get-order-driver' => ['GET'],
+                        'cancel-finding-driver' => ['POST'],
+                        'cancel-ongoing-order' => ['POST']
                     ],
                 ],
             ]);
@@ -610,27 +612,31 @@ class OrderForUserController extends \yii\rest\Controller
             $modelTransactionSession = TransactionSession::find()
                 ->joinWith(['transactionSessionOrder'])
                 ->andWhere(['transaction_session.id' => \Yii::$app->request->post()['transaction_session_id']])
+                ->andWhere(['transaction_session.status' => 'New'])
                 ->one();
 
-            if (($flag = $modelTransactionSession->transactionSessionOrder->delete())) {
+            if (!empty($modelTransactionSession)) {
 
-                if (!empty($modelTransactionSession->promo_item_id)) {
+                if (($flag = $modelTransactionSession->transactionSessionOrder->delete())) {
 
-                    $modelTransactionSession->promo_item_id = null;
-                    $modelTransactionSession->discount_type = null;
-                    $modelTransactionSession->discount_value = null;
+                    if (!empty($modelTransactionSession->promo_item_id)) {
+
+                        $modelTransactionSession->promo_item_id = null;
+                        $modelTransactionSession->discount_type = null;
+                        $modelTransactionSession->discount_value = null;
+                    }
+
+                    $modelTransactionSession->note = null;
+                    $modelTransactionSession->status = 'Open';
+
+                    if (!($flag = $modelTransactionSession->save())) {
+
+                        $result['error'] = $modelTransactionSession->getErrors();
+                    }
+                } else {
+
+                    $result['error'] = $modelTransactionSession->transactionSessionOrder->getErrors();
                 }
-
-                $modelTransactionSession->note = null;
-                $modelTransactionSession->status = 'Open';
-
-                if (!($flag = $modelTransactionSession->save())) {
-
-                    $result['error'] = $modelTransactionSession->getErrors();
-                }
-            } else {
-
-                $result['error'] = $modelTransactionSession->transactionSessionOrder->getErrors();
             }
 
             if ($flag) {
@@ -647,5 +653,70 @@ class OrderForUserController extends \yii\rest\Controller
         }
 
         return $result;
+    }
+
+    public function actionCancelOngoingOrder()
+    {
+        $result = [];
+
+        if (!empty(\Yii::$app->request->post())) {
+
+            $transaction = \Yii::$app->db->beginTransaction();
+            $flag = false;
+
+            $modelTransactionSession = TransactionSession::find()
+                ->joinWith([
+                    'transactionSessionDelivery',
+                    'transactionSessionOrder'
+                ])
+                ->andWhere(['transaction_session.id' => \Yii::$app->request->post()['transaction_session_id']])
+                ->andWhere(['transaction_session.status' => 'Take-Order'])
+                ->one();
+
+            if (!empty($modelTransactionSession)) {
+
+                if (($flag = $modelTransactionSession->transactionSessionDelivery->delete())) {
+
+                    if (($flag = $modelTransactionSession->transactionSessionOrder->delete())) {
+
+                        if (!empty($modelTransactionSession->promo_item_id)) {
+
+                            $modelTransactionSession->promo_item_id = null;
+                            $modelTransactionSession->discount_type = null;
+                            $modelTransactionSession->discount_value = null;
+                        }
+
+                        $modelTransactionSession->note = null;
+                        $modelTransactionSession->status = 'Open';
+
+                        if (!($flag = $modelTransactionSession->save())) {
+
+                            $result['error'] = $modelTransactionSession->getErrors();
+                        }
+                    } else {
+
+                        $result['error'] = $modelTransactionSession->transactionSessionOrder->getErrors();
+                    }
+                } else {
+
+                    $result['error'] = $modelTransactionSession->transactionSessionDelivery->getErrors();
+                }
+            }
+
+            if ($flag) {
+
+                $result['success'] = true;
+
+                $transaction->commit();
+            } else {
+
+                $result['success'] = false;
+
+                $transaction->rollBack();
+            }
+        }
+
+        return $result;
+
     }
 }
