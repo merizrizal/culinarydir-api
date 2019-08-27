@@ -596,6 +596,7 @@ class OrderForUserController extends \yii\rest\Controller
                 $result['driver_photo'] = $modelTransactionSession['transactionSessionDelivery']['driver']['image'];
                 $result['driver_phone'] = $modelTransactionSession['transactionSessionDelivery']['driver']['userPerson']['person']['phone'];
                 $result['driver_username'] = $modelTransactionSession['transactionSessionDelivery']['driver']['username'];
+                $result['driver_id'] = $modelTransactionSession['transactionSessionDelivery']['driver']['id'];
             }
         }
 
