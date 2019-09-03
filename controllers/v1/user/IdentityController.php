@@ -423,6 +423,7 @@ class IdentityController extends \yii\rest\Controller
 
             $result['success'] = true;
             $result['full_name'] = $modelUser['full_name'];
+            $result['user_id'] = $modelUser['id'];
             $result['email'] = $modelUser['email'];
             $result['image'] = $modelUser['image'];
             $result['phone'] = $modelUser['userPerson']['person']['phone'];
