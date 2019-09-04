@@ -1,6 +1,6 @@
 <?php
 
-namespace api\controllers\v1\masterdata;
+namespace api\controllers\v1;
 
 use core\models\City;
 use yii\filters\VerbFilter;
