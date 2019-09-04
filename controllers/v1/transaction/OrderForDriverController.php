@@ -31,7 +31,8 @@ class OrderForDriverController extends \yii\rest\Controller
                         'finish-order' => ['POST'],
                         'new-order' => ['POST'],
                         'driver-not-found' => ['POST'],
-                        'get-list-order-by-driver' => ['POST']
+                        'get-list-order-by-driver' => ['POST'],
+                        'is-order-cancelled' => ['GET']
                     ],
                 ],
             ]);
@@ -247,16 +248,17 @@ class OrderForDriverController extends \yii\rest\Controller
 
                 $modelTransactionSession = TransactionSession::find()
                     ->andWhere(['ilike', 'order_id', $post['order_id'] . '_'])
+                    ->andWhere(['status' => 'New'])
                     ->one();
 
                 if (!empty($modelTransactionSession)) {
 
                     if (!empty($post['driver_user_id'])) {
-                        
+
                         $modelTransactionSessionDelivery = TransactionSessionDelivery::find()
                             ->andWhere(['transaction_session_id' => $modelTransactionSession->id])
                             ->one();
-                        
+
                         if (empty($modelTransactionSessionDelivery)) {
 
                             $modelTransactionSessionDelivery = new TransactionSessionDelivery();
@@ -264,7 +266,7 @@ class OrderForDriverController extends \yii\rest\Controller
                             $modelTransactionSessionDelivery->total_distance = $post['distance'];
                             $modelTransactionSessionDelivery->total_delivery_fee = $post['delivery_fee'];
                         }
-                        
+
                         $modelTransactionSessionDelivery->driver_id = $post['driver_user_id'];
 
                         if (($flag = $modelTransactionSessionDelivery->save())) {
@@ -422,18 +424,18 @@ class OrderForDriverController extends \yii\rest\Controller
 
         return $result;
     }
-    
+
     public function actionDriverNotFound()
     {
         $result = [];
-        
+
         $result['success'] = false;
-        
+
         if (!empty(\Yii::$app->request->post()['order_id'])) {
-            
+
             $result['success'] = $this->updateStatusOrder(\Yii::$app->request->post()['order_id'], 'Cancel');
         }
-        
+
         return $result;
     }
 
@@ -443,7 +445,7 @@ class OrderForDriverController extends \yii\rest\Controller
         $result['success'] = false;
 
         $post = \Yii::$app->request->post();
-        
+
         \Yii::$app->formatter->timeZone = 'Asia/Jakarta';
 
         if (!empty($post['order_date']) && !empty($post['driver_id'])) {
@@ -507,10 +509,21 @@ class OrderForDriverController extends \yii\rest\Controller
 
             $result['message'] = 'Parameter order_date & order_id tidak boleh kosong';
         }
-        
+
         \Yii::$app->formatter->timeZone = 'UTC';
 
         return $result;
+    }
+
+    public function actionIsOrderCancelled($id)
+    {
+        $modelTransactionSession = TransactionSession::find()
+            ->select('status', 'order_id')
+            ->andWhere(['ilike', 'order_id', $id . '_'])
+            ->andWhere(['<>', 'status', 'Open'])
+            ->asArray()->one();
+
+        return empty($modelTransactionSession);
     }
 
     private function updateStatusOrder($orderId, $status)

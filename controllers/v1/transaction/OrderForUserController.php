@@ -33,7 +33,9 @@ class OrderForUserController extends \yii\rest\Controller
                         'order-checkout' => ['POST'],
                         'cancel-order' => ['POST'],
                         'reorder' => ['POST'],
-                        'get-order-driver' => ['GET']
+                        'get-order-driver' => ['GET'],
+                        'cancel-finding-driver' => ['POST'],
+                        'cancel-ongoing-order' => ['POST']
                     ],
                 ],
             ]);
@@ -269,7 +271,6 @@ class OrderForUserController extends \yii\rest\Controller
         $result = [];
 
         $modelTransactionSessionOrder = new TransactionSessionOrder();
-
         $modelPromoItem = new PromoItem();
 
         $modelTransactionSession = TransactionSession::find()
@@ -318,7 +319,6 @@ class OrderForUserController extends \yii\rest\Controller
 
                 if (($flag = $modelPromoItem->save())) {
 
-                    $modelTransactionSession->promo_item_id = $modelPromoItem->id;
                     $modelTransactionSession->discount_value = $modelPromoItem->amount;
                     $modelTransactionSession->discount_type = 'Amount';
                 }
@@ -586,6 +586,7 @@ class OrderForUserController extends \yii\rest\Controller
 
             $result['status'] = $modelTransactionSession['status'];
             $result['business_location'] = $modelTransactionSession['business']['businessLocation']['coordinate'];
+            $result['order_id'] = substr($modelTransactionSession['order_id'], 0, 6);
 
             if (!empty($modelTransactionSession['transactionSessionDelivery'])) {
 
@@ -594,9 +595,131 @@ class OrderForUserController extends \yii\rest\Controller
                 $result['driver_fullname'] = $modelTransactionSession['transactionSessionDelivery']['driver']['full_name'];
                 $result['driver_photo'] = $modelTransactionSession['transactionSessionDelivery']['driver']['image'];
                 $result['driver_phone'] = $modelTransactionSession['transactionSessionDelivery']['driver']['userPerson']['person']['phone'];
+                $result['driver_username'] = $modelTransactionSession['transactionSessionDelivery']['driver']['username'];
+                $result['driver_id'] = $modelTransactionSession['transactionSessionDelivery']['driver']['id'];
             }
         }
 
         return $result;
+    }
+
+    public function actionCancelFindingDriver()
+    {
+        $result = [];
+
+        if (!empty(\Yii::$app->request->post())) {
+
+            $transaction = \Yii::$app->db->beginTransaction();
+            $flag = false;
+
+            $modelTransactionSession = TransactionSession::find()
+                ->joinWith(['transactionSessionOrder'])
+                ->andWhere(['transaction_session.id' => \Yii::$app->request->post()['transaction_session_id']])
+                ->andWhere(['transaction_session.status' => 'New'])
+                ->one();
+
+            if (!empty($modelTransactionSession)) {
+
+                if (($flag = $modelTransactionSession->transactionSessionOrder->delete())) {
+
+                    if (!empty($modelTransactionSession->promo_item_id)) {
+
+                        $modelTransactionSession->promo_item_id = null;
+                        $modelTransactionSession->discount_type = null;
+                        $modelTransactionSession->discount_value = null;
+                    }
+
+                    $modelTransactionSession->note = null;
+                    $modelTransactionSession->status = 'Open';
+
+                    if (!($flag = $modelTransactionSession->save())) {
+
+                        $result['error'] = $modelTransactionSession->getErrors();
+                    }
+                } else {
+
+                    $result['error'] = $modelTransactionSession->transactionSessionOrder->getErrors();
+                }
+            }
+
+            if ($flag) {
+
+                $result['success'] = true;
+
+                $transaction->commit();
+            } else {
+
+                $result['success'] = false;
+
+                $transaction->rollBack();
+            }
+        }
+
+        return $result;
+    }
+
+    public function actionCancelOngoingOrder()
+    {
+        $result = [];
+
+        if (!empty(\Yii::$app->request->post())) {
+
+            $transaction = \Yii::$app->db->beginTransaction();
+            $flag = false;
+
+            $modelTransactionSession = TransactionSession::find()
+                ->joinWith([
+                    'transactionSessionDelivery',
+                    'transactionSessionOrder'
+                ])
+                ->andWhere(['ilike', 'transaction_session.order_id', \Yii::$app->request->post()['order_id'] . '_'])
+                ->andWhere(['transaction_session.status' => 'Take-Order'])
+                ->one();
+
+            if (!empty($modelTransactionSession)) {
+
+                if (($flag = $modelTransactionSession->transactionSessionDelivery->delete())) {
+
+                    if (($flag = $modelTransactionSession->transactionSessionOrder->delete())) {
+
+                        if (!empty($modelTransactionSession->promo_item_id)) {
+
+                            $modelTransactionSession->promo_item_id = null;
+                            $modelTransactionSession->discount_type = null;
+                            $modelTransactionSession->discount_value = null;
+                        }
+
+                        $modelTransactionSession->note = null;
+                        $modelTransactionSession->status = 'Open';
+
+                        if (!($flag = $modelTransactionSession->save())) {
+
+                            $result['error'] = $modelTransactionSession->getErrors();
+                        }
+                    } else {
+
+                        $result['error'] = $modelTransactionSession->transactionSessionOrder->getErrors();
+                    }
+                } else {
+
+                    $result['error'] = $modelTransactionSession->transactionSessionDelivery->getErrors();
+                }
+            }
+
+            if ($flag) {
+
+                $result['success'] = true;
+
+                $transaction->commit();
+            } else {
+
+                $result['success'] = false;
+
+                $transaction->rollBack();
+            }
+        }
+
+        return $result;
+
     }
 }
