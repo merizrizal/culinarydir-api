@@ -614,7 +614,7 @@ class OrderForUserController extends \yii\rest\Controller
 
             $modelTransactionSession = TransactionSession::find()
                 ->joinWith(['transactionSessionOrder'])
-                ->andWhere(['transaction_session.id' => \Yii::$app->request->post()['transaction_session_id']])
+                ->andWhere(['ilike', 'transaction_session.order_id', \Yii::$app->request->post()['order_id'] . '_'])
                 ->andWhere(['transaction_session.status' => 'New'])
                 ->one();
 
