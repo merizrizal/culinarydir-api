@@ -58,7 +58,7 @@ class OrderForDriverController extends \yii\rest\Controller
                     'userOrdered.userPerson.person',
                     'transactionSessionDelivery'
                 ])
-                ->andWhere(['ilike', 'order_id', \Yii::$app->request->post()['order_id'] . '_'])
+                ->andWhere(['order_id' => \Yii::$app->request->post()['order_id']])
                 ->asArray()->one();
 
             $modelUserDriver = User::find()
@@ -117,12 +117,12 @@ class OrderForDriverController extends \yii\rest\Controller
 
             $modelTransactionSession = TransactionSession::find()
                 ->joinWith(['transactionSessionDelivery'])
-                ->andWhere(['ilike', 'order_id', $post['order_id'] . '_'])
+                ->andWhere(['order_id' => $post['order_id']])
                 ->one();
 
             if (!empty($modelTransactionSession->transactionSessionDelivery)) {
 
-                $image = Tools::uploadFileWithoutModel('/img/transaction_session/', 'image', $post['order_id'], '-AD');
+                $image = Tools::uploadFileWithoutModel('/img/transaction_session/', 'image', $post['order_id']);
 
                 if (($flag = !empty($image))) {
 
@@ -181,7 +181,7 @@ class OrderForDriverController extends \yii\rest\Controller
             if (!empty($post['order_id'])) {
 
                 $modelTransactionSession = TransactionSession::find()
-                    ->andWhere(['ilike', 'order_id', $post['order_id'] . '_'])
+                    ->andWhere(['order_id' => $post['order_id']])
                     ->one();
 
                 if (!empty($modelTransactionSession)) {
@@ -247,7 +247,7 @@ class OrderForDriverController extends \yii\rest\Controller
             if (!empty($post['order_id'])) {
 
                 $modelTransactionSession = TransactionSession::find()
-                    ->andWhere(['ilike', 'order_id', $post['order_id'] . '_'])
+                    ->andWhere(['order_id' => $post['order_id']])
                     ->andWhere(['status' => 'New'])
                     ->one();
 
@@ -326,7 +326,7 @@ class OrderForDriverController extends \yii\rest\Controller
             if (!empty($post['order_id'])) {
 
                 $modelTransactionSession = TransactionSession::find()
-                    ->andWhere(['ilike', 'order_id', $post['order_id'] . '_'])
+                    ->andWhere(['order_id' => $post['order_id']])
                     ->one();
 
                 if (!empty($modelTransactionSession)) {
@@ -485,7 +485,7 @@ class OrderForDriverController extends \yii\rest\Controller
                             'delivery_fee' => $dataTransactionSession['transactionSessionDelivery']['total_delivery_fee'],
                             'transaction_time' => \Yii::$app->formatter->asTime($dataTransactionSession['updated_at'], 'HH:mm'),
                             'business_name' => $dataTransactionSession['business']['name'],
-                            'order_id' => substr($dataTransactionSession['order_id'], 0, 6)
+                            'order_id' => $dataTransactionSession['order_id']
                         ]);
                     } else {
 
@@ -496,7 +496,7 @@ class OrderForDriverController extends \yii\rest\Controller
                                 'delivery_fee' => 0,
                                 'transaction_time' => \Yii::$app->formatter->asTime($dataTransactionCanceled['created_at'], 'HH:mm'),
                                 'business_name' => $dataTransactionSession['business']['name'],
-                                'order_id' => substr($dataTransactionSession['order_id'], 0, 6)
+                                'order_id' => $dataTransactionSession['order_id']
                             ]);
                         }
                     }
@@ -519,7 +519,7 @@ class OrderForDriverController extends \yii\rest\Controller
     {
         $modelTransactionSession = TransactionSession::find()
             ->select('status', 'order_id')
-            ->andWhere(['ilike', 'order_id', $id . '_'])
+            ->andWhere(['order_id' => $id])
             ->andWhere(['<>', 'status', 'Open'])
             ->asArray()->one();
 
@@ -533,7 +533,7 @@ class OrderForDriverController extends \yii\rest\Controller
             if (is_string($orderId)) {
 
                 $modelTransactionSession = TransactionSession::find()
-                    ->andWhere(['ilike', 'order_id', $orderId . '_'])
+                    ->andWhere(['order_id' => $orderId])
                     ->one();
             } else {
 

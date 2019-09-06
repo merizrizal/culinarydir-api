@@ -376,7 +376,7 @@ class OrderForUserController extends \yii\rest\Controller
                 'showDetail' => false
             ]);
 
-            $result['order']['header']['order_id'] = substr($modelTransactionSession->order_id, 0, 6);
+            $result['order']['header']['order_id'] = $modelTransactionSession->order_id;
             $result['order']['header']['note'] = $modelTransactionSession->note;
             $result['order']['header']['total_price'] = $modelTransactionSession->total_price;
             $result['order']['header']['total_amount'] = $modelTransactionSession->total_amount;
@@ -528,7 +528,6 @@ class OrderForUserController extends \yii\rest\Controller
             $modelTransactionSession->note = !empty($oldModelTransaction->note) ? $oldModelTransaction->note : null;
             $modelTransactionSession->total_price = $totalPrice;
             $modelTransactionSession->total_amount = $oldModelTransaction->total_amount;
-            $modelTransactionSession->order_id = substr(str_shuffle("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"), 0, 6) . '_' . time();
             $modelTransactionSession->status = 'Open';
 
             if (($flag = $modelTransactionSession->save())) {
@@ -586,7 +585,7 @@ class OrderForUserController extends \yii\rest\Controller
 
             $result['status'] = $modelTransactionSession['status'];
             $result['business_location'] = $modelTransactionSession['business']['businessLocation']['coordinate'];
-            $result['order_id'] = substr($modelTransactionSession['order_id'], 0, 6);
+            $result['order_id'] = $modelTransactionSession->order_id;
 
             if (!empty($modelTransactionSession['transactionSessionDelivery'])) {
 
@@ -614,7 +613,7 @@ class OrderForUserController extends \yii\rest\Controller
 
             $modelTransactionSession = TransactionSession::find()
                 ->joinWith(['transactionSessionOrder'])
-                ->andWhere(['ilike', 'transaction_session.order_id', \Yii::$app->request->post()['order_id'] . '_'])
+                ->andWhere(['transaction_session.order_id' => \Yii::$app->request->post()['order_id']])
                 ->andWhere(['transaction_session.status' => 'New'])
                 ->one();
 
@@ -672,7 +671,7 @@ class OrderForUserController extends \yii\rest\Controller
                     'transactionSessionDelivery',
                     'transactionSessionOrder'
                 ])
-                ->andWhere(['ilike', 'transaction_session.order_id', \Yii::$app->request->post()['order_id'] . '_'])
+                ->andWhere(['transaction_session.order_id' => \Yii::$app->request->post()['order_id']])
                 ->andWhere(['transaction_session.status' => 'Take-Order'])
                 ->one();
 
