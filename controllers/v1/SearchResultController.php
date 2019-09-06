@@ -139,13 +139,24 @@ class SearchResultController extends \yii\rest\Controller
 
             if (!empty(\Yii::$app->request->get('price_min')) || !empty(\Yii::$app->request->get('price_max'))) {
 
-                $modelBusiness = $modelBusiness->andFilterWhere([
-                    'OR',
-                    '(' . \Yii::$app->request->get('price_min') . ' >= "business_detail"."price_min" AND ' . \Yii::$app->request->get('price_min') . ' <= "business_detail"."price_max")',
-                    '(' . \Yii::$app->request->get('price_max') . ' >= "business_detail"."price_min" AND ' . \Yii::$app->request->get('price_max') . ' <= "business_detail"."price_max")',
-                    '("business_detail"."price_min" >= ' . \Yii::$app->request->get('price_min') . ' AND "business_detail"."price_min" <= ' . \Yii::$app->request->get('price_max') . ')',
-                    '("business_detail"."price_max" >= ' . \Yii::$app->request->get('price_min') . ' AND "business_detail"."price_max" <= ' . \Yii::$app->request->get('price_max') . ')',
-                ]);
+                if (\Yii::$app->request->get('price_max') == 0) {
+
+                    $modelBusiness = $modelBusiness->andFilterWhere([
+                        'OR',
+                        '(' . \Yii::$app->request->get('price_min') . ' >= "business_detail"."price_min" AND ' . \Yii::$app->request->get('price_min') . ' <= "business_detail"."price_max")',
+                        '("business_detail"."price_min" >= ' . \Yii::$app->request->get('price_min') . ')',
+                        '("business_detail"."price_max" >= ' . \Yii::$app->request->get('price_min') . ')'
+                    ]);
+                } else {
+
+                    $modelBusiness = $modelBusiness->andFilterWhere([
+                        'OR',
+                        '(' . \Yii::$app->request->get('price_min') . ' >= "business_detail"."price_min" AND ' . \Yii::$app->request->get('price_min') . ' <= "business_detail"."price_max")',
+                        '(' . \Yii::$app->request->get('price_max') . ' >= "business_detail"."price_min" AND ' . \Yii::$app->request->get('price_max') . ' <= "business_detail"."price_max")',
+                        '("business_detail"."price_min" >= ' . \Yii::$app->request->get('price_min') . ' AND "business_detail"."price_min" <= ' . \Yii::$app->request->get('price_max') . ')',
+                        '("business_detail"."price_max" >= ' . \Yii::$app->request->get('price_min') . ' AND "business_detail"."price_max" <= ' . \Yii::$app->request->get('price_max') . ')'
+                    ]);
+                }
             }
 
             $modelBusiness = $modelBusiness->orderBy(['business.id' => SORT_DESC])
