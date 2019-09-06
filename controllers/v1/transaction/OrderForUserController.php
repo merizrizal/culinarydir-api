@@ -585,7 +585,7 @@ class OrderForUserController extends \yii\rest\Controller
 
             $result['status'] = $modelTransactionSession['status'];
             $result['business_location'] = $modelTransactionSession['business']['businessLocation']['coordinate'];
-            $result['order_id'] = $modelTransactionSession->order_id;
+            $result['order_id'] = $modelTransactionSession['order_id'];
 
             if (!empty($modelTransactionSession['transactionSessionDelivery'])) {
 
