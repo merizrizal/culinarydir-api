@@ -50,6 +50,8 @@ class SiteController extends \yii\rest\Controller
     public function actionMaintenance() {
 
         return [
+            'success' => false,
+            'message' => 'Sedang maintenance',
             'error' => [
                 'message' => 'Sedang maintenance'
             ]
