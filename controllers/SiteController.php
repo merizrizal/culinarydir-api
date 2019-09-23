@@ -40,9 +40,18 @@ class SiteController extends \yii\rest\Controller
             ],
         ];
     }
-    
+
     public function actionIndex() {
-        
+
         return 1;
+    }
+
+    public function actionMaintenance() {
+
+        return [
+            'name' => 'Sedang maintenance',
+            'message' => 'Sedang maintenance',
+            'status' => 404
+        ];
     }
 }
