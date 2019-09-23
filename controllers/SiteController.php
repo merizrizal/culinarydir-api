@@ -1,6 +1,7 @@
 <?php
 namespace api\controllers;
 
+
 use yii\filters\VerbFilter;
 use yii\web\HttpException;
 
@@ -49,6 +50,20 @@ class SiteController extends \yii\rest\Controller
 
     public function actionMaintenance() {
 
-        throw new HttpException('500', 'Sedang maintenance', 0);
+        $exception = new class extends HttpException {
+
+            public function __construct()
+            {
+                parent::__construct(404, 'Sedang maintenance');
+            }
+
+            public function getName()
+            {
+
+                return $this->message;
+            }
+        };
+
+        throw $exception;
     }
 }
