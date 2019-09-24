@@ -65,7 +65,7 @@ class PageController extends \yii\rest\Controller
 
         $data['business'] = Business::find()
             ->select([
-                'business.id', 'business.name', 'business.unique_name', 'business.is_active', 'business.membership_type_id',
+                'business.id', 'business.name', 'business.unique_name', 'business.is_active', 'business.membership_type_id', 'business.phone3',
                 'business_detail.business_id', 'business_detail.price_min', 'business_detail.price_max',
                 'business_detail.voters', 'business_detail.vote_value', 'business_detail.vote_points', 'business_detail.love_value',
                 'business_location.address_type', 'business_location.address', 'business_location.coordinate',
@@ -125,30 +125,36 @@ class PageController extends \yii\rest\Controller
                 },
                 'businessPromos' => function ($query) {
 
-                    $query->andOnCondition(['>=', 'business_promo.date_end', \Yii::$app->formatter->asDate(time())])
+                    $query->select(['business_promo.title', 'business_promo.business_id', 'business_promo.image', 'business_promo.date_start', 'business_promo.date_end'])
+                        ->andOnCondition(['>=', 'business_promo.date_end', \Yii::$app->formatter->asDate(time())])
                         ->andOnCondition(['business_promo.not_active' => false]);
                 },
                 'membershipType' => function ($query) {
 
-                    $query->andOnCondition(['membership_type.is_active' => true]);
+                    $query->select(['membership_type.id'])
+                        ->andOnCondition(['membership_type.is_active' => true]);
                 },
                 'membershipType.membershipTypeProductServices' => function ($query) {
 
-                    $query->andOnCondition(['membership_type_product_service.not_active' => false]);
+                    $query->select(['membership_type_product_service.product_service_id', 'membership_type_product_service.membership_type_id'])
+                        ->andOnCondition(['membership_type_product_service.not_active' => false]);
                 },
                 'membershipType.membershipTypeProductServices.productService' => function ($query) {
 
-                    $query->andOnCondition(['product_service.code_name' => 'order-online'])
+                    $query->select(['product_service.name', 'product_service.code_name'])
+                        ->andOnCondition(['product_service.code_name' => 'order-online'])
                         ->andOnCondition(['product_service.not_active' => false]);
                 },
                 'userLoves' => function ($query) use ($userId) {
 
-                    $query->andOnCondition(['user_love.user_id' => !empty($userId) ? $userId : null])
+                    $query->select(['user_love.business_id'])
+                        ->andOnCondition(['user_love.user_id' => !empty($userId) ? $userId : null])
                         ->andOnCondition(['user_love.is_active' => true]);
                 },
                 'userVisits' => function ($query) use ($userId) {
 
-                    $query->andOnCondition(['user_visit.user_id' => !empty($userId) ? $userId : null])
+                    $query->select(['user_visit.business_id'])
+                        ->andOnCondition(['user_visit.user_id' => !empty($userId) ? $userId : null])
                         ->andOnCondition(['user_visit.is_active' => true]);
                 }
             ])
@@ -157,11 +163,11 @@ class PageController extends \yii\rest\Controller
             ->asArray()->one();
 
         $data['business']['businessProductCategories'] = BusinessProductCategory::find()
-            ->select(['business_product_category.product_category_id', 'business_product_category.business_id', 'product_category.name'])
+            ->select(['business_product_category.product_category_id', 'business_product_category.business_id'])
             ->joinWith([
                 'productCategory' => function ($query) {
 
-                    $query->select(['product_category.id'])
+                    $query->select(['product_category.id', 'product_category.name'])
                         ->andOnCondition(['<>', 'product_category.type', 'Menu']);
                 }
             ])
