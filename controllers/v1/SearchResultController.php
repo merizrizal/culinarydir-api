@@ -3,6 +3,7 @@
 namespace api\controllers\v1;
 
 use core\models\Business;
+use core\models\BusinessPromo;
 use yii\data\ActiveDataProvider;
 use yii\filters\VerbFilter;
 
@@ -116,7 +117,8 @@ class SearchResultController extends \yii\rest\Controller
                     'OR',
                     ['ilike', 'business.name', \Yii::$app->request->get('keyword')],
                     ['ilike', 'product_category.name', \Yii::$app->request->get('keyword')],
-                    ['ilike', 'business_location.address', \Yii::$app->request->get('keyword')]
+                    ['ilike', 'business_location.address', \Yii::$app->request->get('keyword')],
+                    ['ilike', 'business_location.address_info', \Yii::$app->request->get('keyword')]
                 ])
                 ->andFilterWhere(['business_product_category.product_category_id' => \Yii::$app->request->get('product_category_id')]);
 
@@ -166,6 +168,63 @@ class SearchResultController extends \yii\rest\Controller
             $provider = new ActiveDataProvider([
                 'query' => $modelBusiness,
             ]);
+        } else if (\Yii::$app->request->get('search_type') == \Yii::t('app', 'promo')) {
+
+            \Yii::$app->formatter->timeZone = 'Asia/Jakarta';
+
+            $modelBusinessPromo = BusinessPromo::find()
+                ->joinWith([
+                    'business',
+                    'business.businessCategories' => function ($query) {
+
+                        $query->andOnCondition(['business_category.is_active' => true]);
+                    },
+                    'business.businessCategories.category',
+                    'business.businessLocation',
+                    'business.businessLocation.city',
+                    'business.businessProductCategories' => function ($query) {
+
+                        $query->andOnCondition(['business_product_category.is_active' => true]);
+                    },
+                    'business.businessProductCategories.productCategory' => function ($query) {
+
+                        $query->andOnCondition(['<>', 'product_category.type', 'Menu']);
+                    },
+                ])
+                ->andFilterWhere(['business_location.city_id' => \Yii::$app->request->get('city_id')])
+                ->andFilterWhere([
+                    'OR',
+                    ['ilike', 'business.name', \Yii::$app->request->get('keyword')],
+                    ['ilike', 'product_category.name', \Yii::$app->request->get('keyword')],
+                    ['ilike', 'business_location.address', \Yii::$app->request->get('keyword')],
+                    ['ilike', 'business_location.address_info', \Yii::$app->request->get('keyword')]
+                ])
+                ->andFilterWhere(['business_product_category.product_category_id' => \Yii::$app->request->get('product_category_id')])
+                ->andFilterWhere(['business_category.category_id' => \Yii::$app->request->get('category_id')])
+                ->andFilterWhere(['>=', 'date_end', \Yii::$app->formatter->asDate(time())])
+                ->andFilterWhere(['business_promo.not_active' => false]);
+
+                \Yii::$app->formatter->timeZone = 'UTC';
+
+                if (!empty(\Yii::$app->request->get('coordinate_lat')) && !empty(\Yii::$app->request->get('coordinate_lng')) && !empty(\Yii::$app->request->get('radius_map'))) {
+
+                    $latitude = \Yii::$app->request->get('coordinate_lat');
+                    $longitude = \Yii::$app->request->get('coordinate_lng');
+                    $radius = \Yii::$app->request->get('radius_map');
+
+                    $modelBusinessPromo = $modelBusinessPromo->andWhere('(acos(sin(radians(split_part("business_location"."coordinate" , \',\', 1)::double precision)) * sin(radians(' . $latitude . ')) + cos(radians(split_part("business_location"."coordinate" , \',\', 1)::double precision)) * cos(radians(' . $latitude . ')) * cos(radians(split_part("business_location"."coordinate" , \',\', 2)::double precision) - radians(' . $longitude . '))) * 6356 * 1000) <= ' . $radius);
+                }
+
+                $modelBusinessPromo = $modelBusinessPromo->orderBy(['business_promo.id' => SORT_DESC])
+
+                    ->andFilterWhere('TRUE = FALSE')
+
+                    ->distinct()
+                    ->asArray();
+
+                $provider = new ActiveDataProvider([
+                    'query' => $modelBusinessPromo,
+                ]);
         }
 
         return $provider;
