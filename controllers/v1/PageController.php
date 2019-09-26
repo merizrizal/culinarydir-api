@@ -57,7 +57,7 @@ class PageController extends \yii\rest\Controller
         return $data;
     }
 
-    public function actionBusinessDetail($id, $userId)
+    public function actionBusinessDetail($id, $userId = null)
     {
         \Yii::$app->formatter->timeZone = 'Asia/Jakarta';
 
@@ -65,11 +65,12 @@ class PageController extends \yii\rest\Controller
 
         $data['business'] = Business::find()
             ->select([
-                'business.id', 'business.name', 'business.unique_name', 'business.is_active', 'business.membership_type_id', 'business.phone3',
-                'business_detail.business_id', 'business_detail.price_min', 'business_detail.price_max',
-                'business_detail.voters', 'business_detail.vote_value', 'business_detail.vote_points', 'business_detail.love_value',
-                'business_location.address_type', 'business_location.address', 'business_location.coordinate',
-                'city.name as city_name', 'district.name as district_name', 'village.name as village_name'
+                'business.id', 'business.name', 'business.unique_name', 'business.is_active', 'business.membership_type_id',
+                'business.phone1', 'business.phone2', 'business.phone3', 'business_detail.price_min', 'business_detail.price_max',
+                'business.note', 'business_detail.voters', 'business_detail.vote_value', 'business_detail.vote_points',
+                'business_detail.love_value', 'business_detail.visit_value', 'business_location.address_type',
+                'business_location.address', 'business_location.coordinate', 'city.name as city_name',
+                'district.name as district_name', 'village.name as village_name'
             ])
             ->joinWith([
                 'businessCategories' => function ($query) {
@@ -92,7 +93,8 @@ class PageController extends \yii\rest\Controller
                 },
                 'businessImages' => function ($query) {
 
-                    $query->select(['business_image.business_id', 'business_image.image']);
+                    $query->select(['business_image.business_id', 'business_image.image'])
+                        ->andOnCondition(['business_image.is_primary' => true]);
                 },
                 'businessLocation' => function ($query) {
 
@@ -167,24 +169,28 @@ class PageController extends \yii\rest\Controller
             ->joinWith([
                 'productCategory' => function ($query) {
 
-                    $query->select(['product_category.id', 'product_category.name'])
-                        ->andOnCondition(['<>', 'product_category.type', 'Menu']);
+                    $query->select(['product_category.id', 'product_category.name']);
                 }
             ])
             ->andWhere(['business_product_category.business_id' => $data['business']['id']])
             ->andWhere(['business_product_category.is_active' => true])
+            ->andWhere(['<>', 'product_category.type', 'Menu'])
             ->cache(60)
             ->asArray()->all();
 
         $data['business']['businessHours'] = BusinessHour::find()
-            ->select(['business_hour.id', 'business_hour.business_id', 'business_hour.open_at', 'business_hour.close_at', 'business_hour.day', 'business_hour.is_open'])
+            ->select([
+                'business_hour.id', 'business_hour.business_id',
+                'to_char(business_hour.open_at, \'HH24:MI\') as open_at', 'to_char(business_hour.close_at, \'HH24:MI\') as close_at',
+                'business_hour.day', 'business_hour.is_open'
+            ])
             ->joinWith([
                 'businessHourAdditionals' => function($query) {
 
                     $query->select([
                         'business_hour_additional.business_hour_id',
-                        'business_hour_additional.open_at',
-                        'business_hour_additional.close_at',
+                        'to_char(business_hour_additional.open_at, \'HH24:MI\') as open_at',
+                        'to_char(business_hour_additional.close_at, \'HH24:MI\') as close_at',
                         'business_hour_additional.is_open',
                         'business_hour_additional.day'
                     ]);
