@@ -1,6 +1,7 @@
 <?php
 namespace api\controllers;
 
+
 use yii\filters\VerbFilter;
 
 /**
@@ -40,9 +41,20 @@ class SiteController extends \yii\rest\Controller
             ],
         ];
     }
-    
+
     public function actionIndex() {
-        
+
         return 1;
+    }
+
+    public function actionMaintenance() {
+
+        return [
+            'success' => false,
+            'message' => 'Sedang maintenance',
+            'error' => [
+                'message' => 'Sedang maintenance'
+            ]
+        ];
     }
 }
