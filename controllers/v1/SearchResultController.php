@@ -217,7 +217,7 @@ class SearchResultController extends \yii\rest\Controller
 
                 $modelBusinessPromo = $modelBusinessPromo->orderBy(['business_promo.id' => SORT_DESC])
 
-                    ->andFilterWhere('TRUE = FALSE')
+                    ->andFilterWhere(['business.id' => 'FALSE'])
 
                     ->distinct()
                     ->asArray();
