@@ -127,7 +127,7 @@ class PageController extends \yii\rest\Controller
                 },
                 'businessPromos' => function ($query) {
 
-                    $query->select(['business_promo.title', 'business_promo.business_id', 'business_promo.image', 'business_promo.date_start', 'business_promo.date_end'])
+                    $query->select(['business_promo.title', 'business_promo.short_description', 'business_promo.business_id', 'business_promo.image', 'business_promo.date_start', 'business_promo.date_end'])
                         ->andOnCondition(['>=', 'business_promo.date_end', \Yii::$app->formatter->asDate(time())])
                         ->andOnCondition(['business_promo.not_active' => false]);
                 },
@@ -217,6 +217,15 @@ class PageController extends \yii\rest\Controller
 
                         break;
                     }
+                }
+            }
+
+            if (!empty($data['business']['businessPromos'])) {
+
+                foreach ($data['business']['businessPromos'] as $i => $dataBusinessPromo) {
+
+                    $data['business']['businessPromos'][$i]['date_start'] = \Yii::$app->formatter->asDate($dataBusinessPromo['date_start'], 'medium');
+                    $data['business']['businessPromos'][$i]['date_end'] = \Yii::$app->formatter->asDate($dataBusinessPromo['date_end'], 'medium');
                 }
             }
         }
