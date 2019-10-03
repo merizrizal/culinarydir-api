@@ -12,6 +12,7 @@ use core\models\UserPostMain;
 use core\models\RatingComponent;
 use core\models\TransactionSession;
 use frontend\models\Post;
+use core\models\BusinessProduct;
 
 class PageController extends \yii\rest\Controller
 {
@@ -98,7 +99,7 @@ class PageController extends \yii\rest\Controller
                 },
                 'businessLocation' => function ($query) {
 
-                $query->select(['business_location.business_id', 'business_location.city_id', 'business_location.district_id', 'business_location.village_id']);
+                    $query->select(['business_location.business_id', 'business_location.city_id', 'business_location.district_id', 'business_location.village_id']);
                 },
                 'businessLocation.city' => function ($query) {
 
@@ -201,6 +202,56 @@ class PageController extends \yii\rest\Controller
             ->orderBy(['business_hour.day' => SORT_ASC])
             ->cache(60)
             ->asArray()->all();
+
+        $data['business']['businessProducts'] = BusinessProduct::find()
+            ->select([
+                'business_product.name', 'business_product.description',
+                'business_product.price', 'business_product.business_id',
+                'business_product.is_available', 'business_product.business_product_category_id'
+            ])
+            ->joinWith([
+                'businessProductCategory' => function($query) {
+
+                    $query->select([
+                        'business_product_category.id', 'business_product_category.product_category_id',
+                        'business_product_category.order', 'business_product_category.business_id'
+                    ]);
+                },
+                'businessProductCategory.productCategory' => function($query) {
+
+                    $query->select(['product_category.id', 'product_category.name']);
+                }
+            ])
+            ->andWhere(['business_product.not_active' => false])
+            ->andWhere(['business_product.business_id' => $data['business']['id']])
+            ->asArray()->all();
+
+        $dataMenuCategorised = [];
+
+        foreach ($data['business']['businessProducts'] as $dataBusinessProduct) {
+
+            if (!empty($dataBusinessProduct['businessProductCategory'])) {
+
+                $key = 'categorised_menu';
+
+                if (empty($dataMenuCategorised[$dataBusinessProduct['businessProductCategory']['order']][$key])) {
+
+                    $dataMenuCategorised[$dataBusinessProduct['businessProductCategory']['order']][$key] = [];
+                }
+
+                array_push($dataMenuCategorised[$dataBusinessProduct['businessProductCategory']['order']][$key], $dataBusinessProduct);
+            } else {
+
+                if (empty($dataMenuCategorised[999]['emptyCategory'])) {
+
+                    $dataMenuCategorised[999]['emptyCategory'] = [];
+                }
+
+                array_push($dataMenuCategorised[999]['emptyCategory'], $dataBusinessProduct);
+            }
+        }
+
+        $data['business']['businessProducts'] = $dataMenuCategorised;
 
         $data['business']['isOrderOnline'] = false;
 
