@@ -203,6 +203,36 @@ class PageController extends \yii\rest\Controller
             ->cache(60)
             ->asArray()->all();
 
+        $days = \Yii::$app->params['days'];
+        $now = \Yii::$app->formatter->asTime(time());
+        $isOpen = false;
+
+        foreach ($data['business']['businessHours'] as $dataBusinessHour) {
+
+            $day = $days[$dataBusinessHour['day'] - 1];
+
+            if (date('l') == $day) {
+
+                $isOpen = $now >= $dataBusinessHour['open_at'] && $now <= $dataBusinessHour['close_at'];
+                $openStatusMessage = " hingga " . \Yii::$app->formatter->asTime($dataBusinessHour['close_at'], 'HH:mm') . " hari ini";
+            }
+
+            if (!empty($dataBusinessHour['businessHourAdditionals']) && !$isOpen) {
+
+                foreach ($dataBusinessHour['businessHourAdditionals'] as $dataBusinessHourAdditional) {
+
+                    if (date('l') == $day) {
+
+                        $isOpen = $now >= $dataBusinessHourAdditional['open_at'] && $now <= $dataBusinessHourAdditional['close_at'];
+                        $openStatusMessage = " hingga " . \Yii::$app->formatter->asTime($dataBusinessHourAdditional['close_at'], 'HH:mm') . " hari ini";
+                    }
+                }
+            }
+        }
+
+        $data['business']['isOpenNow'] = $isOpen;
+        $data['business']['openStatusMessage'] = $openStatusMessage;
+
         $data['business']['businessProducts'] = BusinessProduct::find()
             ->select([
                 'business_product.name', 'business_product.description',
@@ -224,34 +254,12 @@ class PageController extends \yii\rest\Controller
             ])
             ->andWhere(['business_product.not_active' => false])
             ->andWhere(['business_product.business_id' => $data['business']['id']])
+            ->groupBy([
+                'business_product.name', 'business_product.description', 'business_product.price', 'business_product.business_id',
+                'business_product.is_available', 'business_product.business_product_category_id', 'business_product_category.order', 'product_category.name'
+            ])
+            ->orderBy(['business_product_category.order' => SORT_ASC])
             ->asArray()->all();
-
-        $dataMenuCategorised = [];
-
-        foreach ($data['business']['businessProducts'] as $dataBusinessProduct) {
-
-            if (!empty($dataBusinessProduct['businessProductCategory'])) {
-
-                $key = 'categorised_menu';
-
-                if (empty($dataMenuCategorised[$dataBusinessProduct['businessProductCategory']['order']][$key])) {
-
-                    $dataMenuCategorised[$dataBusinessProduct['businessProductCategory']['order']][$key] = [];
-                }
-
-                array_push($dataMenuCategorised[$dataBusinessProduct['businessProductCategory']['order']][$key], $dataBusinessProduct);
-            } else {
-
-                if (empty($dataMenuCategorised[999]['emptyCategory'])) {
-
-                    $dataMenuCategorised[999]['emptyCategory'] = [];
-                }
-
-                array_push($dataMenuCategorised[999]['emptyCategory'], $dataBusinessProduct);
-            }
-        }
-
-        $data['business']['businessProducts'] = $dataMenuCategorised;
 
         $data['business']['isOrderOnline'] = false;
 
