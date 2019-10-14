@@ -2,17 +2,17 @@
 
 namespace api\controllers\v1;
 
+use yii\filters\VerbFilter;
+use yii\web\NotFoundHttpException;
+use core\models\Business;
 use core\models\BusinessHour;
 use core\models\BusinessProductCategory;
+use core\models\BusinessPromo;
 use core\models\Promo;
-use yii\filters\VerbFilter;
-use core\models\Business;
-use yii\web\NotFoundHttpException;
-use core\models\UserPostMain;
 use core\models\RatingComponent;
 use core\models\TransactionSession;
+use core\models\UserPostMain;
 use frontend\models\Post;
-use core\models\BusinessProduct;
 
 class PageController extends \yii\rest\Controller
 {
@@ -28,7 +28,9 @@ class PageController extends \yii\rest\Controller
                     'class' => VerbFilter::className(),
                     'actions' => [
                         'news-promo' => ['GET'],
-                        'business-detail' => ['GET']
+                        'business-detail' => ['GET'],
+                        'business-product-category' => ['GET'],
+                        'business-promo' => ['GET']
                     ],
                 ],
             ]);
@@ -125,12 +127,6 @@ class PageController extends \yii\rest\Controller
 
                     $query->select(['rating_component.id', 'rating_component.name'])
                         ->andOnCondition(['rating_component.is_active' => true]);
-                },
-                'businessPromos' => function ($query) {
-
-                    $query->select(['business_promo.title', 'business_promo.short_description', 'business_promo.business_id', 'business_promo.image', 'business_promo.date_start', 'business_promo.date_end'])
-                        ->andOnCondition(['>=', 'business_promo.date_end', \Yii::$app->formatter->asDate(time())])
-                        ->andOnCondition(['business_promo.not_active' => false]);
                 },
                 'membershipType' => function ($query) {
 
@@ -233,34 +229,6 @@ class PageController extends \yii\rest\Controller
         $data['business']['isOpenNow'] = $isOpen;
         $data['business']['openStatusMessage'] = $openStatusMessage;
 
-        $data['business']['businessProducts'] = BusinessProduct::find()
-            ->select([
-                'business_product.name', 'business_product.description',
-                'business_product.price', 'business_product.business_id',
-                'business_product.is_available', 'business_product.business_product_category_id'
-            ])
-            ->joinWith([
-                'businessProductCategory' => function($query) {
-
-                    $query->select([
-                        'business_product_category.id', 'business_product_category.product_category_id',
-                        'business_product_category.order', 'business_product_category.business_id'
-                    ]);
-                },
-                'businessProductCategory.productCategory' => function($query) {
-
-                    $query->select(['product_category.id', 'product_category.name']);
-                }
-            ])
-            ->andWhere(['business_product.not_active' => false])
-            ->andWhere(['business_product.business_id' => $data['business']['id']])
-            ->groupBy([
-                'business_product.name', 'business_product.description', 'business_product.price', 'business_product.business_id',
-                'business_product.is_available', 'business_product.business_product_category_id', 'business_product_category.order', 'product_category.name'
-            ])
-            ->orderBy(['business_product_category.order' => SORT_ASC])
-            ->asArray()->all();
-
         $data['business']['isOrderOnline'] = false;
 
         if (empty($data['business'])) {
@@ -276,15 +244,6 @@ class PageController extends \yii\rest\Controller
 
                         break;
                     }
-                }
-            }
-
-            if (!empty($data['business']['businessPromos'])) {
-
-                foreach ($data['business']['businessPromos'] as $i => $dataBusinessPromo) {
-
-                    $data['business']['businessPromos'][$i]['date_start'] = \Yii::$app->formatter->asDate($dataBusinessPromo['date_start'], 'medium');
-                    $data['business']['businessPromos'][$i]['date_end'] = \Yii::$app->formatter->asDate($dataBusinessPromo['date_end'], 'medium');
                 }
             }
         }
@@ -371,6 +330,55 @@ class PageController extends \yii\rest\Controller
         \Yii::$app->formatter->timeZone = 'UTC';
 
         return $data;
+    }
+
+    public function actionBusinessProductCategory($id)
+    {
+        $modelBusinessProductCategory = BusinessProductCategory::find()
+            ->select(['business_product_category.id', 'business_product_category.product_category_id', 'product_category.name'])
+            ->joinWith([
+                'productCategory' => function($query) {
+
+                    $query->select(['product_category.id']);
+                },
+                'businessProducts' => function($query) {
+
+                    $query->select([
+                        'business_product.name', 'business_product.description', 'business_product.price',
+                        'business_product.is_available', 'business_product.business_product_category_id',
+                        'business_product.business_id'
+                    ])
+                    ->andOnCondition(['business_product.not_active' => false]);
+                }
+            ])
+            ->andWhere(['business_product_category.business_id' => $id])
+            ->asArray()->all();
+
+        return $modelBusinessProductCategory;
+    }
+
+    public function actionBusinessPromo($id)
+    {
+        $modelBusinessPromo = BusinessPromo::find()
+            ->select([
+                'business_promo.title', 'business_promo.short_description', 'business_promo.business_id',
+                'business_promo.image', 'business_promo.date_start', 'business_promo.date_end'
+            ])
+            ->andWhere(['>=', 'business_promo.date_end', \Yii::$app->formatter->asDate(time())])
+            ->andWhere(['business_promo.not_active' => false])
+            ->andWhere(['business_promo.business_id' => $id])
+            ->asArray()->all();
+
+        if (!empty($modelBusinessPromo)) {
+
+            foreach ($modelBusinessPromo as $i => $dataBusinessPromo) {
+
+                $modelBusinessPromo[$i]['date_start'] = \Yii::$app->formatter->asDate($dataBusinessPromo['date_start'], 'medium');
+                $modelBusinessPromo[$i]['date_end'] = \Yii::$app->formatter->asDate($dataBusinessPromo['date_end'], 'medium');
+            }
+        }
+
+        return $modelBusinessPromo;
     }
 }
 
