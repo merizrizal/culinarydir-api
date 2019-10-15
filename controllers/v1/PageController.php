@@ -12,6 +12,8 @@ use core\models\Promo;
 use core\models\RatingComponent;
 use core\models\TransactionSession;
 use core\models\UserPostMain;
+use core\models\UserLove;
+use core\models\UserVisit;
 use frontend\models\Post;
 
 class PageController extends \yii\rest\Controller
@@ -143,23 +145,25 @@ class PageController extends \yii\rest\Controller
                     $query->select(['product_service.name', 'product_service.code_name'])
                         ->andOnCondition(['product_service.code_name' => 'order-online'])
                         ->andOnCondition(['product_service.not_active' => false]);
-                },
-                'userLoves' => function ($query) use ($userId) {
-
-                    $query->select(['user_love.business_id'])
-                        ->andOnCondition(['user_love.user_id' => !empty($userId) ? $userId : null])
-                        ->andOnCondition(['user_love.is_active' => true]);
-                },
-                'userVisits' => function ($query) use ($userId) {
-
-                    $query->select(['user_visit.business_id'])
-                        ->andOnCondition(['user_visit.user_id' => !empty($userId) ? $userId : null])
-                        ->andOnCondition(['user_visit.is_active' => true]);
                 }
             ])
             ->andWhere(['business.id' => $id])
             ->cache(60)
             ->asArray()->one();
+
+        $data['business']['userLoves'] = UserLove::find()
+            ->select(['business_id'])
+            ->andWhere(['business_id' => $id])
+            ->andWhere(['user_id' => !empty($userId) ? $userId : null])
+            ->andWhere(['is_active' => true])
+            ->asArray()->all();
+
+        $data['business']['userVisits'] = UserVisit::find()
+            ->select(['business_id'])
+            ->andWhere(['business_id' => $id])
+            ->andWhere(['user_id' => !empty($userId) ? $userId : null])
+            ->andWhere(['is_active' => true])
+            ->asArray()->all();
 
         $data['business']['businessProductCategories'] = BusinessProductCategory::find()
             ->select(['business_product_category.product_category_id', 'business_product_category.business_id'])

@@ -80,15 +80,13 @@ class ActionController extends \yii\rest\Controller
 
                 $result['success'] = true;
                 $result['is_active'] = $modelUserLove->is_active;
+                $result['love_value'] = $modelBusinessDetail->love_value;
             } else {
 
                 $transaction->rollBack();
 
                 $result['success'] = false;
-                $result['icon'] = 'aicon aicon-icon-info';
-                $result['title'] = 'Gagal';
                 $result['message'] = 'Proses love gagal disimpan';
-                $result['type'] = 'danger';
             }
 
             \Yii::$app->response->format = Response::FORMAT_JSON;
@@ -145,15 +143,13 @@ class ActionController extends \yii\rest\Controller
 
                 $result['success'] = true;
                 $result['is_active'] = $modelUserVisit->is_active;
+                $result['visit_value'] = $modelBusinessDetail->visit_value;
             } else {
 
                 $transaction->rollBack();
 
                 $result['success'] = false;
-                $result['icon'] = 'aicon aicon-icon-info';
-                $result['title'] = 'Gagal';
                 $result['message'] = 'Proses been here gagal disimpan';
-                $result['type'] = 'danger';
             }
 
             \Yii::$app->response->format = Response::FORMAT_JSON;
