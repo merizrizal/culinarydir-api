@@ -1,6 +1,6 @@
 <?php
 
-namespace api\controllers\v1;
+namespace api\controllers\v2\user;
 
 use core\models\BusinessDetail;
 use core\models\UserLove;
@@ -23,15 +23,15 @@ class ActionController extends \yii\rest\Controller
                 'verbs' => [
                     'class' => VerbFilter::className(),
                     'actions' => [
-                        'submit-user-love' => ['POST'],
-                        'submit-user-visit' => ['POST'],
+                        'love-business' => ['POST'],
+                        'visit-business' => ['POST'],
                         'submit-report' => ['POST']
                     ]
                 ]
             ]);
     }
 
-    public function actionSubmitUserLove()
+    public function actionLoveBusiness()
     {
         if (!empty(($post = \Yii::$app->request->post()))) {
 
@@ -94,7 +94,7 @@ class ActionController extends \yii\rest\Controller
         }
     }
 
-    public function actionSubmitUserVisit()
+    public function actionVisitBusiness()
     {
         if (!empty(($post = \Yii::$app->request->post()))) {
 

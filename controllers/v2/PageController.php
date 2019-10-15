@@ -1,6 +1,6 @@
 <?php
 
-namespace api\controllers\v1;
+namespace api\controllers\v2;
 
 use yii\filters\VerbFilter;
 use yii\web\NotFoundHttpException;
@@ -10,11 +10,10 @@ use core\models\BusinessProductCategory;
 use core\models\BusinessPromo;
 use core\models\Promo;
 use core\models\RatingComponent;
-use core\models\TransactionSession;
 use core\models\UserPostMain;
 use core\models\UserLove;
 use core\models\UserVisit;
-use frontend\models\Post;
+use core\models\BusinessImage;
 
 class PageController extends \yii\rest\Controller
 {
@@ -68,38 +67,37 @@ class PageController extends \yii\rest\Controller
 
         $data = [];
 
-        $data['business'] = Business::find()
+        $data = Business::find()
             ->select([
-                'business.id', 'business.name', 'business.unique_name', 'business.is_active', 'business.membership_type_id',
+                'business.id', 'business.name', 'business.membership_type_id',
                 'business.phone1', 'business.phone2', 'business.phone3', 'business_detail.price_min', 'business_detail.price_max',
                 'business.about', 'business_detail.voters', 'business_detail.vote_value', 'business_detail.vote_points',
-                'business_detail.love_value', 'business_detail.visit_value', 'business_location.address_type',
-                'business_location.address', 'business_location.coordinate', 'city.name as city_name',
+                'business_detail.love_value', 'business_detail.visit_value', 'business_detail.note_business_hour',
+                'business_location.address_type', 'business_location.address', 'business_location.coordinate', 'city.name as city_name',
                 'district.name as district_name', 'village.name as village_name'
             ])
             ->joinWith([
                 'businessCategories' => function ($query) {
 
-                    $query->select(['business_category.category_id', 'business_category.business_id'])
-                        ->andOnCondition(['business_category.is_active' => true]);
-                },
-                'businessCategories.category' => function ($query) {
+                    $query->select(['business_category.category_id', 'business_category.business_id', 'category.name'])
+                        ->joinWith([
+                            'category' => function ($query) {
 
-                    $query->select(['category.id', 'category.name']);
+                                $query->select(['category.id']);
+                            }
+                        ])
+                        ->andOnCondition(['business_category.is_active' => true]);
                 },
                 'businessFacilities' => function ($query) {
 
-                    $query->select(['business_facility.facility_id', 'business_facility.business_id'])
+                    $query->select(['business_facility.facility_id', 'business_facility.business_id', 'facility.name'])
+                        ->joinWith([
+                            'facility' => function ($query) {
+
+                                $query->select(['facility.id']);
+                            }
+                        ])
                         ->andOnCondition(['business_facility.is_active' => true]);
-                },
-                'businessFacilities.facility' => function ($query) {
-
-                    $query->select(['facility.id', 'facility.name']);
-                },
-                'businessImages' => function ($query) {
-
-                    $query->select(['business_image.business_id', 'business_image.image'])
-                        ->andOnCondition(['business_image.is_primary' => true]);
                 },
                 'businessLocation' => function ($query) {
 
@@ -123,12 +121,17 @@ class PageController extends \yii\rest\Controller
                 },
                 'businessDetailVotes' => function ($query) {
 
-                    $query->select(['business_detail_vote.business_id', 'business_detail_vote.rating_component_id', 'business_detail_vote.vote_value']);
-                },
-                'businessDetailVotes.ratingComponent' => function ($query) {
+                    $query->select([
+                            'business_detail_vote.business_id', 'business_detail_vote.rating_component_id',
+                            'business_detail_vote.vote_value', 'rating_component.name'
+                        ])
+                        ->joinWith([
+                            'ratingComponent' => function ($query) {
 
-                    $query->select(['rating_component.id', 'rating_component.name'])
-                        ->andOnCondition(['rating_component.is_active' => true]);
+                                $query->select(['rating_component.id'])
+                                    ->andOnCondition(['rating_component.is_active' => true]);
+                            }
+                        ]);
                 },
                 'membershipType' => function ($query) {
 
@@ -148,45 +151,51 @@ class PageController extends \yii\rest\Controller
                 }
             ])
             ->andWhere(['business.id' => $id])
-            ->cache(60)
             ->asArray()->one();
 
-        $data['business']['userLoves'] = UserLove::find()
+        $data['userLoves'] = UserLove::find()
             ->select(['business_id'])
             ->andWhere(['business_id' => $id])
             ->andWhere(['user_id' => !empty($userId) ? $userId : null])
             ->andWhere(['is_active' => true])
             ->asArray()->all();
 
-        $data['business']['userVisits'] = UserVisit::find()
+        $data['userVisits'] = UserVisit::find()
             ->select(['business_id'])
             ->andWhere(['business_id' => $id])
             ->andWhere(['user_id' => !empty($userId) ? $userId : null])
             ->andWhere(['is_active' => true])
             ->asArray()->all();
 
-        $data['business']['businessProductCategories'] = BusinessProductCategory::find()
-            ->select(['business_product_category.product_category_id', 'business_product_category.business_id'])
+        $data['businessProductCategories'] = BusinessProductCategory::find()
+            ->select(['business_product_category.product_category_id', 'business_product_category.business_id', 'product_category.name'])
             ->joinWith([
                 'productCategory' => function ($query) {
 
-                    $query->select(['product_category.id', 'product_category.name']);
+                    $query->select(['product_category.id']);
                 }
             ])
-            ->andWhere(['business_product_category.business_id' => $data['business']['id']])
+            ->andWhere(['business_product_category.business_id' => $data['id']])
             ->andWhere(['business_product_category.is_active' => true])
             ->andWhere(['<>', 'product_category.type', 'Menu'])
             ->cache(60)
             ->asArray()->all();
 
-        $data['business']['businessHours'] = BusinessHour::find()
+        $modelBusinessImage = BusinessImage::find()
+            ->select(['image'])
+            ->andWhere(['is_primary' => true])
+            ->asArray()->one();
+
+        $data['business_image'] = $modelBusinessImage['image'];
+
+        $data['businessHours'] = BusinessHour::find()
             ->select([
                 'business_hour.id', 'business_hour.business_id',
                 'to_char(business_hour.open_at, \'HH24:MI\') as open_at', 'to_char(business_hour.close_at, \'HH24:MI\') as close_at',
                 'business_hour.day', 'business_hour.is_open'
             ])
             ->joinWith([
-                'businessHourAdditionals' => function($query) {
+                'businessHourAdditionals' => function ($query) {
 
                     $query->select([
                         'business_hour_additional.business_hour_id',
@@ -197,7 +206,7 @@ class PageController extends \yii\rest\Controller
                     ]);
                 }
             ])
-            ->andWhere(['business_hour.business_id' => $data['business']['id']])
+            ->andWhere(['business_hour.business_id' => $data['id']])
             ->andWhere(['business_hour.is_open' => true])
             ->orderBy(['business_hour.day' => SORT_ASC])
             ->cache(60)
@@ -207,9 +216,13 @@ class PageController extends \yii\rest\Controller
         $now = \Yii::$app->formatter->asTime(time());
         $isOpen = false;
 
-        foreach ($data['business']['businessHours'] as $dataBusinessHour) {
+        $businessHourList = "";
+
+        foreach ($data['businessHours'] as $dataBusinessHour) {
 
             $day = $days[$dataBusinessHour['day'] - 1];
+
+            $businessHourList = \Yii::t('app', $day) . "\r\n" . $dataBusinessHour['open_at'] . ' - ' . $dataBusinessHour['close_at'] . "\r\n";
 
             if (date('l') == $day) {
 
@@ -221,6 +234,8 @@ class PageController extends \yii\rest\Controller
 
                 foreach ($dataBusinessHour['businessHourAdditionals'] as $dataBusinessHourAdditional) {
 
+                    $businessHourList += $dataBusinessHourAdditional['open_at'] . ' - ' . $dataBusinessHourAdditional['close_at'] . "\r\n";
+
                     if (date('l') == $day) {
 
                         $isOpen = $now >= $dataBusinessHourAdditional['open_at'] && $now <= $dataBusinessHourAdditional['close_at'];
@@ -230,21 +245,21 @@ class PageController extends \yii\rest\Controller
             }
         }
 
-        $data['business']['isOpenNow'] = $isOpen;
-        $data['business']['openStatusMessage'] = $openStatusMessage;
+        $data['isOpenNow'] = $isOpen;
+        $data['openStatusMessage'] = $openStatusMessage;
 
-        $data['business']['isOrderOnline'] = false;
+        $data['isOrderOnline'] = false;
 
-        if (empty($data['business'])) {
+        if (empty($data)) {
 
             throw new NotFoundHttpException('The requested page does not exist.');
         } else {
 
-            if (!empty($data['business']['membershipType']['membershipTypeProductServices'])) {
+            if (!empty($data['membershipType']['membershipTypeProductServices'])) {
 
-                foreach ($data['business']['membershipType']['membershipTypeProductServices'] as $membershipTypeProductService) {
+                foreach ($data['membershipType']['membershipTypeProductServices'] as $membershipTypeProductService) {
 
-                    if ($data['business']['isOrderOnline'] = !empty($membershipTypeProductService['productService'])) {
+                    if (($data['isOrderOnline'] = !empty($membershipTypeProductService['productService']))) {
 
                         break;
                     }
@@ -252,9 +267,16 @@ class PageController extends \yii\rest\Controller
             }
         }
 
-        $data['business']['userPostMains'] = UserPostMain::find()
+        $data['userPostMain'] = UserPostMain::find()
+            ->select([
+                'user_post_main.id', 'user_post_main.user_id', 'user.image', 'user.full_name',
+                'user_post_main.text', 'user_post_main.love_value', 'user_post_main.created_at'
+            ])
             ->joinWith([
-                'user',
+                'user' => function ($query) {
+
+                    $query->select(['user.id']);
+                },
                 'userPostMains child' => function ($query) {
 
                     $query->andOnCondition(['child.is_publish' => true])
@@ -263,19 +285,35 @@ class PageController extends \yii\rest\Controller
                 },
                 'userVotes' => function ($query) {
 
-                    $query->orderBy(['rating_component_id' => SORT_ASC]);
-                },
-                'userVotes.ratingComponent' => function ($query) {
+                    $query->select(['rating_component.name', 'user_vote.vote_value', 'user_vote.rating_component_id', 'user_vote.user_post_main_id'])
+                        ->joinWith([
+                            'ratingComponent' => function ($query) {
 
-                    $query->andOnCondition(['rating_component.is_active' => true]);
+                                $query->select(['rating_component.id'])
+                                    ->andOnCondition(['rating_component.is_active' => true]);
+                            }
+                        ])
+                        ->orderBy(['rating_component.order' => SORT_ASC]);
                 },
                 'userPostLoves' => function ($query) use ($userId) {
 
-                    $query->andOnCondition(['user_post_love.user_id' => !empty($userId) ? $userId : null])
+                    $query->select(['user_post_love.id', 'user_post_love.user_post_main_id'])
+                        ->andOnCondition(['user_post_love.user_id' => !empty($userId) ? $userId : null])
                         ->andOnCondition(['user_post_love.is_active' => true]);
                 },
-                'userPostComments',
-                'userPostComments.user user_comment'
+                'userPostComments' => function ($query) {
+
+                    $query->select([
+                            'user_post_comment.text', 'user_post_comment.user_post_main_id', 'user_post_comment.user_id',
+                            'user_post_comment.created_at', 'user_comment.full_name', 'user_comment.image'
+                        ])
+                        ->joinWith([
+                            'user user_comment' => function ($query) {
+
+                                $query->select(['user_comment.id']);
+                            }
+                        ]);
+                }
             ])
             ->andWhere(['user_post_main.parent_id' => null])
             ->andWhere(['user_post_main.business_id' => $id])
@@ -286,23 +324,17 @@ class PageController extends \yii\rest\Controller
             ->asArray()->one();
 
         $data['ratingComponent'] = RatingComponent::find()
+            ->select(['name'])
             ->where(['is_active' => true])
             ->orderBy(['order' => SORT_ASC])
             ->asArray()->all();
 
-        $data['business']['transactionSession'] = TransactionSession::find()
-            ->joinWith(['business'])
-            ->andWhere(['transaction_session.user_ordered' => !empty($userId) ? $userId : null])
-            ->andWhere(['transaction_session.status' => 'Open'])
-            ->cache(60)
-            ->asArray()->one();
-
-        if (!empty($data['business']['userPostMains']['userVotes'])) {
+        if (!empty($data['userPostMains']['userVotes'])) {
 
             $ratingComponentValue = [];
             $totalVoteValue = 0;
 
-            foreach ($data['business']['userPostMains']['userVotes'] as $dataUserVote) {
+            foreach ($data['userPostMains']['userVotes'] as $dataUserVote) {
 
                 if (!empty($dataUserVote['ratingComponent'])) {
 
@@ -320,16 +352,7 @@ class PageController extends \yii\rest\Controller
             ];
         }
 
-        $modelPost = new Post();
-
-        if (!empty($data['business']['userPostMains'])) {
-
-            $modelPost->text = $data['business']['userPostMains']['text'];
-        }
-
-        $data['post'] = $modelPost->toArray();
-
-        $data['businessWhatsapp'] = !empty($data['business']['phone3']) ? 'https://api.whatsapp.com/send?phone=62' . substr(str_replace('-', '', $data['business']['phone3']), 1) : null;
+        $data['businessWhatsapp'] = !empty($data['phone3']) ? 'https://api.whatsapp.com/send?phone=62' . substr(str_replace('-', '', $data['phone3']), 1) : null;
 
         \Yii::$app->formatter->timeZone = 'UTC';
 
@@ -341,11 +364,11 @@ class PageController extends \yii\rest\Controller
         $modelBusinessProductCategory = BusinessProductCategory::find()
             ->select(['business_product_category.id', 'business_product_category.product_category_id', 'product_category.name'])
             ->joinWith([
-                'productCategory' => function($query) {
+                'productCategory' => function ($query) {
 
                     $query->select(['product_category.id']);
                 },
-                'businessProducts' => function($query) {
+                'businessProducts' => function ($query) {
 
                     $query->select([
                         'business_product.name', 'business_product.description', 'business_product.price',
