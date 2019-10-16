@@ -229,13 +229,12 @@ class PageController extends \yii\rest\Controller
 
         $isOpen = false;
         $todayHour = \Yii::t('app', 'Closed');
-        $businessHourList = "";
 
-        foreach ($data['businessHours'] as $dataBusinessHour) {
+        foreach ($data['businessHours'] as $i => $dataBusinessHour) {
 
             $day = $days[$dataBusinessHour['day'] - 1];
 
-            $businessHourList .= \Yii::t('app', $day) . "\r\t: " . $dataBusinessHour['open_at'] . ' - ' . $dataBusinessHour['close_at'];
+            $data['businessHours'][$i]['day'] = \Yii::t('app', $day);
 
             if (date('l') == $day) {
 
@@ -248,8 +247,6 @@ class PageController extends \yii\rest\Controller
 
                 foreach ($dataBusinessHour['businessHourAdditionals'] as $dataBusinessHourAdditional) {
 
-                    $businessHourList .= ", " . $dataBusinessHourAdditional['open_at'] . ' - ' . $dataBusinessHourAdditional['close_at'];
-
                     if (date('l') == $day) {
 
                         $isOpen = $now >= $dataBusinessHourAdditional['open_at'] && $now <= $dataBusinessHourAdditional['close_at'];
@@ -258,11 +255,8 @@ class PageController extends \yii\rest\Controller
                     }
                 }
             }
-
-            $businessHourList .= "\n";
         }
 
-        $data['business_hour_list'] = $businessHourList;
         $data['is_open_now'] = $isOpen;
         $data['open_status_message'] = $openStatusMessage;
         $data['today_hour'] = $todayHour;
