@@ -31,7 +31,8 @@ class PageController extends \yii\rest\Controller
                         'news-promo' => ['GET'],
                         'business-detail' => ['GET'],
                         'business-product-category' => ['GET'],
-                        'business-promo' => ['GET']
+                        'business-promo' => ['GET'],
+                        'business-review' => ['GET']
                     ],
                 ],
             ]);
@@ -79,26 +80,14 @@ class PageController extends \yii\rest\Controller
             ->joinWith([
                 'businessCategories' => function ($query) {
 
-                    $query->select(['business_category.category_id', 'business_category.business_id', 'category.name'])
-                        ->joinWith([
-                            'category' => function ($query) {
-
-                                $query->select(['category.id']);
-                            }
-                        ])
-                        ->andOnCondition(['business_category.is_active' => true]);
+                    $query->andOnCondition(['business_category.is_active' => true]);
                 },
+                'businessCategories.category',
                 'businessFacilities' => function ($query) {
 
-                    $query->select(['business_facility.facility_id', 'business_facility.business_id', 'facility.name'])
-                        ->joinWith([
-                            'facility' => function ($query) {
-
-                                $query->select(['facility.id']);
-                            }
-                        ])
-                        ->andOnCondition(['business_facility.is_active' => true]);
+                    $query->andOnCondition(['business_facility.is_active' => true]);
                 },
+                'businessFacilities.facility',
                 'businessLocation' => function ($query) {
 
                     $query->select(['business_location.business_id', 'business_location.city_id', 'business_location.district_id', 'business_location.village_id']);
@@ -153,20 +142,6 @@ class PageController extends \yii\rest\Controller
             ->andWhere(['business.id' => $id])
             ->asArray()->one();
 
-        $data['userLoves'] = UserLove::find()
-            ->select(['business_id'])
-            ->andWhere(['business_id' => $id])
-            ->andWhere(['user_id' => !empty($userId) ? $userId : null])
-            ->andWhere(['is_active' => true])
-            ->asArray()->all();
-
-        $data['userVisits'] = UserVisit::find()
-            ->select(['business_id'])
-            ->andWhere(['business_id' => $id])
-            ->andWhere(['user_id' => !empty($userId) ? $userId : null])
-            ->andWhere(['is_active' => true])
-            ->asArray()->all();
-
         $data['businessProductCategories'] = BusinessProductCategory::find()
             ->select(['business_product_category.product_category_id', 'business_product_category.business_id', 'product_category.name'])
             ->joinWith([
@@ -179,6 +154,43 @@ class PageController extends \yii\rest\Controller
             ->andWhere(['business_product_category.is_active' => true])
             ->andWhere(['<>', 'product_category.type', 'Menu'])
             ->cache(60)
+            ->asArray()->all();
+
+        $businessCategoryList = "";
+        $businessFacilityList = "";
+        $businessProductCategoryList = "";
+
+        foreach ($data['businessCategories'] as $dataBusinessCategory) {
+
+            $businessCategoryList .= $dataBusinessCategory['category']['name'] . ", ";
+        }
+
+        foreach ($data['businessFacilities'] as $dataBusinessFacility) {
+
+            $businessFacilityList .= $dataBusinessFacility['facility']['name'] . ", ";
+        }
+
+        foreach ($data['businessProductCategories'] as $dataBusinessProductCategory) {
+
+            $businessProductCategoryList .= $dataBusinessProductCategory['name'] . ", ";
+        }
+
+        $data['business_category_list'] = trim($businessCategoryList, ", ");
+        $data['business_facility_list'] = trim($businessFacilityList, ", ");
+        $data['business_product_category_list'] = trim($businessProductCategoryList, ", ");
+
+        $data['userLoves'] = UserLove::find()
+            ->select(['business_id'])
+            ->andWhere(['business_id' => $id])
+            ->andWhere(['user_id' => !empty($userId) ? $userId : null])
+            ->andWhere(['is_active' => true])
+            ->asArray()->all();
+
+        $data['userVisits'] = UserVisit::find()
+            ->select(['business_id'])
+            ->andWhere(['business_id' => $id])
+            ->andWhere(['user_id' => !empty($userId) ? $userId : null])
+            ->andWhere(['is_active' => true])
             ->asArray()->all();
 
         $modelBusinessImage = BusinessImage::find()
@@ -214,41 +226,48 @@ class PageController extends \yii\rest\Controller
 
         $days = \Yii::$app->params['days'];
         $now = \Yii::$app->formatter->asTime(time());
-        $isOpen = false;
 
+        $isOpen = false;
+        $todayHour = \Yii::t('app', 'Closed');
         $businessHourList = "";
 
         foreach ($data['businessHours'] as $dataBusinessHour) {
 
             $day = $days[$dataBusinessHour['day'] - 1];
 
-            $businessHourList = \Yii::t('app', $day) . "\r\n" . $dataBusinessHour['open_at'] . ' - ' . $dataBusinessHour['close_at'] . "\r\n";
+            $businessHourList .= \Yii::t('app', $day) . "\r\t: " . $dataBusinessHour['open_at'] . ' - ' . $dataBusinessHour['close_at'];
 
             if (date('l') == $day) {
 
                 $isOpen = $now >= $dataBusinessHour['open_at'] && $now <= $dataBusinessHour['close_at'];
                 $openStatusMessage = " hingga " . \Yii::$app->formatter->asTime($dataBusinessHour['close_at'], 'HH:mm') . " hari ini";
+                $todayHour = $dataBusinessHour['open_at'] . ' - ' . $dataBusinessHour['close_at'];
             }
 
             if (!empty($dataBusinessHour['businessHourAdditionals']) && !$isOpen) {
 
                 foreach ($dataBusinessHour['businessHourAdditionals'] as $dataBusinessHourAdditional) {
 
-                    $businessHourList += $dataBusinessHourAdditional['open_at'] . ' - ' . $dataBusinessHourAdditional['close_at'] . "\r\n";
+                    $businessHourList .= ", " . $dataBusinessHourAdditional['open_at'] . ' - ' . $dataBusinessHourAdditional['close_at'];
 
                     if (date('l') == $day) {
 
                         $isOpen = $now >= $dataBusinessHourAdditional['open_at'] && $now <= $dataBusinessHourAdditional['close_at'];
                         $openStatusMessage = " hingga " . \Yii::$app->formatter->asTime($dataBusinessHourAdditional['close_at'], 'HH:mm') . " hari ini";
+                        $todayHour .= "\n" . $dataBusinessHourAdditional['open_at'] . ' - ' . $dataBusinessHourAdditional['close_at'];
                     }
                 }
             }
+
+            $businessHourList .= "\n";
         }
 
-        $data['isOpenNow'] = $isOpen;
-        $data['openStatusMessage'] = $openStatusMessage;
+        $data['business_hour_list'] = $businessHourList;
+        $data['is_open_now'] = $isOpen;
+        $data['open_status_message'] = $openStatusMessage;
+        $data['today_hour'] = $todayHour;
 
-        $data['isOrderOnline'] = false;
+        $data['is_order_online'] = false;
 
         if (empty($data)) {
 
@@ -267,92 +286,7 @@ class PageController extends \yii\rest\Controller
             }
         }
 
-        $data['userPostMain'] = UserPostMain::find()
-            ->select([
-                'user_post_main.id', 'user_post_main.user_id', 'user.image', 'user.full_name',
-                'user_post_main.text', 'user_post_main.love_value', 'user_post_main.created_at'
-            ])
-            ->joinWith([
-                'user' => function ($query) {
-
-                    $query->select(['user.id']);
-                },
-                'userPostMains child' => function ($query) {
-
-                    $query->andOnCondition(['child.is_publish' => true])
-                        ->andOnCondition(['child.type' => 'Photo'])
-                        ->orderBy(['child.created_at' => SORT_ASC]);
-                },
-                'userVotes' => function ($query) {
-
-                    $query->select(['rating_component.name', 'user_vote.vote_value', 'user_vote.rating_component_id', 'user_vote.user_post_main_id'])
-                        ->joinWith([
-                            'ratingComponent' => function ($query) {
-
-                                $query->select(['rating_component.id'])
-                                    ->andOnCondition(['rating_component.is_active' => true]);
-                            }
-                        ])
-                        ->orderBy(['rating_component.order' => SORT_ASC]);
-                },
-                'userPostLoves' => function ($query) use ($userId) {
-
-                    $query->select(['user_post_love.id', 'user_post_love.user_post_main_id'])
-                        ->andOnCondition(['user_post_love.user_id' => !empty($userId) ? $userId : null])
-                        ->andOnCondition(['user_post_love.is_active' => true]);
-                },
-                'userPostComments' => function ($query) {
-
-                    $query->select([
-                            'user_post_comment.text', 'user_post_comment.user_post_main_id', 'user_post_comment.user_id',
-                            'user_post_comment.created_at', 'user_comment.full_name', 'user_comment.image'
-                        ])
-                        ->joinWith([
-                            'user user_comment' => function ($query) {
-
-                                $query->select(['user_comment.id']);
-                            }
-                        ]);
-                }
-            ])
-            ->andWhere(['user_post_main.parent_id' => null])
-            ->andWhere(['user_post_main.business_id' => $id])
-            ->andWhere(['user_post_main.user_id' => !empty($userId) ? $userId : null])
-            ->andWhere(['user_post_main.type' => 'Review'])
-            ->andWhere(['user_post_main.is_publish' => true])
-            ->cache(60)
-            ->asArray()->one();
-
-        $data['ratingComponent'] = RatingComponent::find()
-            ->select(['name'])
-            ->where(['is_active' => true])
-            ->orderBy(['order' => SORT_ASC])
-            ->asArray()->all();
-
-        if (!empty($data['userPostMains']['userVotes'])) {
-
-            $ratingComponentValue = [];
-            $totalVoteValue = 0;
-
-            foreach ($data['userPostMains']['userVotes'] as $dataUserVote) {
-
-                if (!empty($dataUserVote['ratingComponent'])) {
-
-                    $totalVoteValue += $dataUserVote['vote_value'];
-
-                    $ratingComponentValue[$dataUserVote['rating_component_id']] = $dataUserVote['vote_value'];
-                }
-            }
-
-            $overallValue = !empty($totalVoteValue) && !empty($ratingComponentValue) ? ($totalVoteValue / count($ratingComponentValue)) : 0;
-
-            $data['dataUserVoteReview'] = [
-                'overallValue' => $overallValue,
-                'ratingComponentValue' => $ratingComponentValue
-            ];
-        }
-
-        $data['businessWhatsapp'] = !empty($data['phone3']) ? 'https://api.whatsapp.com/send?phone=62' . substr(str_replace('-', '', $data['phone3']), 1) : null;
+        $data['business_whatsapp'] = !empty($data['phone3']) ? 'https://api.whatsapp.com/send?phone=62' . substr(str_replace('-', '', $data['phone3']), 1) : null;
 
         \Yii::$app->formatter->timeZone = 'UTC';
 
@@ -406,6 +340,98 @@ class PageController extends \yii\rest\Controller
         }
 
         return $modelBusinessPromo;
+    }
+
+    public function actionBusinessReview($id, $userId)
+    {
+        $data = [];
+
+        $data['userPostMain'] = UserPostMain::find()
+            ->select([
+                'user_post_main.id', 'user_post_main.user_id', 'user.image', 'user.full_name',
+                'user_post_main.text', 'user_post_main.love_value', 'user_post_main.created_at'
+            ])
+            ->joinWith([
+                'user' => function ($query) {
+
+                    $query->select(['user.id']);
+                },
+                'userPostMains child' => function ($query) {
+
+                    $query->andOnCondition(['child.is_publish' => true])
+                        ->andOnCondition(['child.type' => 'Photo'])
+                        ->orderBy(['child.created_at' => SORT_ASC]);
+                },
+                'userVotes' => function ($query) {
+
+                    $query->select(['rating_component.name', 'user_vote.vote_value', 'user_vote.rating_component_id', 'user_vote.user_post_main_id'])
+                        ->joinWith([
+                            'ratingComponent' => function ($query) {
+
+                                $query->select(['rating_component.id'])
+                                    ->andOnCondition(['rating_component.is_active' => true]);
+                            }
+                        ])
+                        ->orderBy(['rating_component.order' => SORT_ASC]);
+                },
+                'userPostLoves' => function ($query) use ($userId) {
+
+                    $query->select(['user_post_love.id', 'user_post_love.user_post_main_id'])
+                        ->andOnCondition(['user_post_love.user_id' => !empty($userId) ? $userId : null])
+                        ->andOnCondition(['user_post_love.is_active' => true]);
+                },
+                'userPostComments' => function ($query) {
+
+                    $query->select([
+                        'user_post_comment.text', 'user_post_comment.user_post_main_id', 'user_post_comment.user_id',
+                        'user_post_comment.created_at', 'user_comment.full_name', 'user_comment.image'
+                    ])
+                    ->joinWith([
+                        'user user_comment' => function ($query) {
+
+                            $query->select(['user_comment.id']);
+                        }
+                    ]);
+                }
+            ])
+            ->andWhere(['user_post_main.parent_id' => null])
+            ->andWhere(['user_post_main.business_id' => $id])
+            ->andWhere(['user_post_main.user_id' => !empty($userId) ? $userId : null])
+            ->andWhere(['user_post_main.type' => 'Review'])
+            ->andWhere(['user_post_main.is_publish' => true])
+            ->cache(60)
+            ->asArray()->one();
+
+        $data['ratingComponent'] = RatingComponent::find()
+            ->select(['name'])
+            ->where(['is_active' => true])
+            ->orderBy(['order' => SORT_ASC])
+            ->asArray()->all();
+
+        if (!empty($data['userPostMains']['userVotes'])) {
+
+            $ratingComponentValue = [];
+            $totalVoteValue = 0;
+
+            foreach ($data['userPostMains']['userVotes'] as $dataUserVote) {
+
+                if (!empty($dataUserVote['ratingComponent'])) {
+
+                    $totalVoteValue += $dataUserVote['vote_value'];
+
+                    $ratingComponentValue[$dataUserVote['rating_component_id']] = $dataUserVote['vote_value'];
+                }
+            }
+
+            $overallValue = !empty($totalVoteValue) && !empty($ratingComponentValue) ? ($totalVoteValue / count($ratingComponentValue)) : 0;
+
+            $data['dataUserVoteReview'] = [
+                'overallValue' => $overallValue,
+                'ratingComponentValue' => $ratingComponentValue
+            ];
+        }
+
+        return $data;
     }
 }
 
