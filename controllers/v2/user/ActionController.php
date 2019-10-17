@@ -4,7 +4,6 @@ namespace api\controllers\v2\user;
 
 use core\models\BusinessDetail;
 use core\models\UserLove;
-use core\models\UserVisit;
 use core\models\UserReport;
 use yii\filters\VerbFilter;
 use yii\web\Response;
@@ -87,69 +86,6 @@ class ActionController extends \yii\rest\Controller
 
                 $result['success'] = false;
                 $result['message'] = 'Proses love gagal disimpan';
-            }
-
-            \Yii::$app->response->format = Response::FORMAT_JSON;
-            return $result;
-        }
-    }
-
-    public function actionVisitBusiness()
-    {
-        if (!empty(($post = \Yii::$app->request->post()))) {
-
-            $transaction = \Yii::$app->db->beginTransaction();
-            $flag = false;
-
-            $modelUserVisit = UserVisit::find()
-                ->andWhere(['unique_id' => $post['user_id'] . '-' . $post['business_id']])
-                ->one();
-
-            if (!empty($modelUserVisit)) {
-
-                $modelUserVisit->is_active = !$modelUserVisit->is_active;
-            } else {
-
-                $modelUserVisit = new UserVisit();
-
-                $modelUserVisit->business_id = $post['business_id'];
-                $modelUserVisit->user_id = $post['user_id'];
-                $modelUserVisit->is_active = true;
-                $modelUserVisit->unique_id = $post['user_id'] . '-' . $post['business_id'];
-            }
-
-            if (($flag = $modelUserVisit->save())) {
-
-                $modelBusinessDetail = BusinessDetail::find()
-                    ->where(['business_id' => $post['business_id']])
-                    ->one();
-
-                if ($modelUserVisit->is_active) {
-
-                    $modelBusinessDetail->visit_value += 1;
-                } else {
-
-                    $modelBusinessDetail->visit_value -= 1;
-                }
-
-                $flag = $modelBusinessDetail->save();
-            }
-
-            $result = [];
-
-            if ($flag) {
-
-                $transaction->commit();
-
-                $result['success'] = true;
-                $result['is_active'] = $modelUserVisit->is_active;
-                $result['visit_value'] = $modelBusinessDetail->visit_value;
-            } else {
-
-                $transaction->rollBack();
-
-                $result['success'] = false;
-                $result['message'] = 'Proses been here gagal disimpan';
             }
 
             \Yii::$app->response->format = Response::FORMAT_JSON;

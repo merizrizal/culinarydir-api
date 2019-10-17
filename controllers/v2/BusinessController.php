@@ -13,7 +13,6 @@ use core\models\Promo;
 use core\models\RatingComponent;
 use core\models\UserLove;
 use core\models\UserPostMain;
-use core\models\UserVisit;
 use yii\filters\VerbFilter;
 use yii\web\NotFoundHttpException;
 
@@ -36,6 +35,7 @@ class BusinessController extends \yii\rest\Controller
                         'news-promo' => ['GET'],
                         'business-detail-header' => ['GET'],
                         'business-detail' => ['GET'],
+                        'business-open-status' => ['GET'],
                         'business-product-category' => ['GET'],
                         'business-promo' => ['GET'],
                         'business-review' => ['GET']
@@ -151,8 +151,6 @@ class BusinessController extends \yii\rest\Controller
 
     public function actionBusinessDetail($id, $userId = null)
     {
-        \Yii::$app->formatter->timeZone = 'Asia/Jakarta';
-
         $data = [];
 
         $data = Business::find()
@@ -160,8 +158,8 @@ class BusinessController extends \yii\rest\Controller
                 'business.id', 'business.name', 'business.membership_type_id',
                 'business.phone1', 'business.phone2', 'business.phone3', 'business_detail.price_min', 'business_detail.price_max',
                 'business.about', 'business_detail.voters', 'business_detail.vote_value', 'business_detail.vote_points',
-                'business_detail.love_value', 'business_detail.visit_value', 'business_detail.note_business_hour',
-                'business_location.address_type', 'business_location.address', 'business_location.coordinate', 'city.name as city_name',
+                'business_detail.love_value', 'business_detail.note_business_hour', 'business_location.address_type',
+                'business_location.address', 'business_location.coordinate', 'city.name as city_name',
                 'district.name as district_name', 'village.name as village_name'
             ])
             ->joinWith([
@@ -261,13 +259,6 @@ class BusinessController extends \yii\rest\Controller
             ->andWhere(['is_active' => true])
             ->asArray()->all();
 
-        $data['userVisits'] = UserVisit::find()
-            ->select(['business_id'])
-            ->andWhere(['business_id' => $id])
-            ->andWhere(['user_id' => !empty($userId) ? $userId : null])
-            ->andWhere(['is_active' => true])
-            ->asArray()->all();
-
         $data['businessHours'] = BusinessHour::find()
             ->select([
                 'business_hour.id', 'business_hour.business_id',
@@ -281,8 +272,6 @@ class BusinessController extends \yii\rest\Controller
                         'business_hour_additional.business_hour_id',
                         'to_char(business_hour_additional.open_at, \'HH24:MI\') as open_at',
                         'to_char(business_hour_additional.close_at, \'HH24:MI\') as close_at',
-                        'business_hour_additional.is_open',
-                        'business_hour_additional.day'
                     ]);
                 }
             ])
@@ -293,9 +282,6 @@ class BusinessController extends \yii\rest\Controller
             ->asArray()->all();
 
         $days = \Yii::$app->params['days'];
-        $now = \Yii::$app->formatter->asTime(time());
-
-        $isOpen = false;
         $todayHour = \Yii::t('app', 'Closed');
 
         foreach ($data['businessHours'] as $i => $dataBusinessHour) {
@@ -306,29 +292,28 @@ class BusinessController extends \yii\rest\Controller
 
             if (date('l') == $day) {
 
-                $isOpen = $now >= $dataBusinessHour['open_at'] && $now <= $dataBusinessHour['close_at'];
-                $openStatusMessage = " hingga " . \Yii::$app->formatter->asTime($dataBusinessHour['close_at'], 'HH:mm') . " hari ini";
-                $todayHour = $dataBusinessHour['open_at'] . ' - ' . $dataBusinessHour['close_at'];
+                if (($dataBusinessHour['open_at'] == '00:00') && ($dataBusinessHour['close_at'] == '24:00')) {
+
+                    $todayHour = \Yii::t('app', '24 Hours');
+                } else {
+
+                    $todayHour = $dataBusinessHour['open_at'] . ' - ' . $dataBusinessHour['close_at'];
+                }
             }
 
-            if (!empty($dataBusinessHour['businessHourAdditionals']) && !$isOpen) {
+            if (!empty($dataBusinessHour['businessHourAdditionals'])) {
 
                 foreach ($dataBusinessHour['businessHourAdditionals'] as $dataBusinessHourAdditional) {
 
                     if (date('l') == $day) {
 
-                        $isOpen = $now >= $dataBusinessHourAdditional['open_at'] && $now <= $dataBusinessHourAdditional['close_at'];
-                        $openStatusMessage = " hingga " . \Yii::$app->formatter->asTime($dataBusinessHourAdditional['close_at'], 'HH:mm') . " hari ini";
                         $todayHour .= "\n" . $dataBusinessHourAdditional['open_at'] . ' - ' . $dataBusinessHourAdditional['close_at'];
                     }
                 }
             }
         }
 
-        $data['is_open_now'] = $isOpen;
-        $data['open_status_message'] = $openStatusMessage;
         $data['today_hour'] = $todayHour;
-
         $data['is_order_online'] = false;
 
         if (empty($data)) {
@@ -349,6 +334,66 @@ class BusinessController extends \yii\rest\Controller
         }
 
         $data['business_whatsapp'] = !empty($data['phone3']) ? 'https://api.whatsapp.com/send?phone=62' . substr(str_replace('-', '', $data['phone3']), 1) : null;
+
+        return $data;
+    }
+
+    public function actionBusinessOpenStatus($id)
+    {
+        \Yii::$app->formatter->timeZone = 'Asia/Jakarta';
+
+        $data = [];
+
+        $modelBusinessHour = BusinessHour::find()
+            ->joinWith(['businessHourAdditionals'])
+            ->andWhere(['business_hour.business_id' => $id])
+            ->andWhere(['business_hour.is_open' => true])
+            ->orderBy(['business_hour.day' => SORT_ASC])
+            ->cache(60)
+            ->asArray()->all();
+
+        $days = \Yii::$app->params['days'];
+        $now = \Yii::$app->formatter->asTime(time());
+
+        $isOpen = false;
+        $openStatusMessage = "";
+
+        foreach ($modelBusinessHour as $dataBusinessHour) {
+
+            $day = $days[$dataBusinessHour['day'] - 1];
+
+            if (date('l') == $day) {
+
+                $isOpen = $now >= $dataBusinessHour['open_at'] && $now <= $dataBusinessHour['close_at'];
+
+                if ($isOpen) {
+
+                    $openStatusMessage = " hingga " . \Yii::$app->formatter->asTime($dataBusinessHour['close_at'], 'HH:mm') . " hari ini";
+                }
+            }
+
+            if (!empty($dataBusinessHour['businessHourAdditionals']) && !$isOpen) {
+
+                foreach ($dataBusinessHour['businessHourAdditionals'] as $dataBusinessHourAdditional) {
+
+                    if (date('l') == $day) {
+
+                        $isOpen = $now >= $dataBusinessHourAdditional['open_at'] && $now <= $dataBusinessHourAdditional['close_at'];
+
+                        if ($isOpen) {
+
+                            $openStatusMessage = " hingga " . \Yii::$app->formatter->asTime($dataBusinessHourAdditional['close_at'], 'HH:mm') . " hari ini";
+                        } else {
+
+                            $openStatusMessage = " buka lagi jam " . \Yii::$app->formatter->asTime($dataBusinessHourAdditional['open_at'], 'HH:mm');
+                        }
+                    }
+                }
+            }
+        }
+
+        $data['is_open_now'] = $isOpen;
+        $data['open_status_message'] = $openStatusMessage;
 
         \Yii::$app->formatter->timeZone = 'UTC';
 
