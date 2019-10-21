@@ -41,7 +41,6 @@ class BusinessController extends \yii\rest\Controller
                         'payment-list' => ['GET'],
                         'album-list' => ['GET'],
                         'news-promo' => ['GET'],
-                        'business-detail-header' => ['GET'],
                         'business-detail' => ['GET'],
                         'business-open-status' => ['GET'],
                         'business-product-category' => ['GET'],
@@ -128,40 +127,6 @@ class BusinessController extends \yii\rest\Controller
         }
 
         return $data;
-    }
-
-    public function actionBusinessDetailHeader($id)
-    {
-        $modelBusiness = Business::find()
-            ->select(['business.id', 'business.name'])
-            ->joinWith([
-                'businessCategories' => function ($query) {
-
-                    $query->andOnCondition(['business_category.is_active' => true]);
-                },
-                'businessCategories.category',
-            ])
-            ->andWhere(['business.id' => $id])
-            ->asArray()->one();
-
-        $modelBusinessImage = BusinessImage::find()
-            ->select(['image'])
-            ->andWhere(['is_primary' => true])
-            ->andWhere(['business_id' => $id])
-            ->asArray()->one();
-
-        $modelBusiness['business_image'] = $modelBusinessImage['image'];
-
-        $businessCategoryList = "";
-
-        foreach ($modelBusiness['businessCategories'] as $dataBusinessCategory) {
-
-            $businessCategoryList .= $dataBusinessCategory['category']['name'] . ", ";
-        }
-
-        $modelBusiness['business_category_list'] = trim($businessCategoryList, ", ");
-
-        return $modelBusiness;
     }
 
     public function actionBusinessDetail($id, $userId = null)
