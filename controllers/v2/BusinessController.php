@@ -387,7 +387,7 @@ class BusinessController extends \yii\rest\Controller
             ->joinWith([
                 'productCategory' => function ($query) {
 
-                    $query->select(['product_category.id']);
+                    $query->select(['product_category.id', 'product_category.type']);
                 },
                 'businessProducts' => function ($query) {
 
@@ -400,6 +400,7 @@ class BusinessController extends \yii\rest\Controller
                 }
             ])
             ->andWhere(['business_product_category.business_id' => $id])
+            ->andWhere(['OR', ['product_category.type' => 'Menu'], ['product_category.type' => 'Specific-Menu']])
             ->asArray()->all();
 
         return $modelBusinessProductCategory;
