@@ -13,11 +13,19 @@ use core\models\Promo;
 use core\models\RatingComponent;
 use core\models\UserLove;
 use core\models\UserPostMain;
+use yii\data\ActiveDataProvider;
 use yii\filters\VerbFilter;
 use yii\web\NotFoundHttpException;
 
 class BusinessController extends \yii\rest\Controller
 {
+    public $serializer = [
+        'class' => 'yii\rest\Serializer',
+        'collectionEnvelope' => 'items',
+        'linksEnvelope' => 'links',
+        'metaEnvelope' => 'meta',
+    ];
+
     /**
      * @inheritdoc
      */
@@ -83,12 +91,19 @@ class BusinessController extends \yii\rest\Controller
 
     public function actionAlbumList($id)
     {
+        $provider = null;
+
         $model = BusinessImage::find()
             ->select(['business_image.id', 'business_image.business_id', 'business_image.image', 'business_image.type', 'business_image.is_primary', 'business_image.category', 'business_image.order' ])
             ->andWhere(['business_id' => $id])
-            ->asArray()->all();
+            ->distinct()
+            ->asArray();
 
-        return $model;
+        $provider = new ActiveDataProvider([
+            'query' => $model,
+        ]);
+
+        return $provider;
     }
 
     public function actionNewsPromo()
