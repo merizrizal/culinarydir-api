@@ -92,17 +92,41 @@ class BusinessController extends \yii\rest\Controller
     {
         $provider = null;
 
-        $model = BusinessImage::find()
-            ->select(['business_image.id', 'business_image.business_id', 'business_image.image', 'business_image.type', 'business_image.is_primary', 'business_image.category', 'business_image.order' ])
-            ->andWhere(['business_id' => $id])
-            ->distinct()
-            ->asArray();
+        $modelBusinessImage = BusinessImage::find()
+            ->select(['id', 'business_id', 'image', 'CONCAT(category) AS image_type'])
+            ->andWhere(['business_id' => $id]);
+
+        $modelUserPostMain = UserPostMain::find()
+            ->select(['id', 'business_id', 'image', 'CONCAT(\'User Post\') AS image_type'])
+            ->andWhere(['business_id' => $id]);
+
+        $model = (new \yii\db\Query())
+            ->from(['image_business_user' => $modelBusinessImage->union($modelUserPostMain)]);
 
         $provider = new ActiveDataProvider([
             'query' => $model,
         ]);
 
         return $provider;
+    }
+
+    public function actionCountCategoryAlbum($id) {
+
+        $modelBusinessImage = BusinessImage::find()
+            ->select(['COUNT(id) AS count', 'CONCAT(category) as image_type'])
+            ->andWhere(['business_id' => $id])
+            ->groupBy('CONCAT(category)');
+
+        $modelUserPostMain = UserPostMain::find()
+            ->select(['COUNT(id) AS count', 'CONCAT(\'User Post\') as image_type'])
+            ->andWhere(['business_id' => $id])
+            ->groupBy('CONCAT(\'User Post\')');
+
+        $model = (new \yii\db\Query())
+            ->from(['image_business_user' => $modelBusinessImage->union($modelUserPostMain)])
+            ->all();
+
+        return $model;
     }
 
     public function actionNewsPromo()
