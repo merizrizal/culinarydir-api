@@ -87,7 +87,7 @@ class BusinessController extends \yii\rest\Controller
         return $model;
     }
 
-    public function actionAlbumList($id)
+    public function actionAlbumList($id, $imageType = null)
     {
         $provider = null;
 
@@ -97,10 +97,12 @@ class BusinessController extends \yii\rest\Controller
 
         $modelUserPostMain = UserPostMain::find()
             ->select(['id', 'business_id', 'image', 'CONCAT(\'User Post\') AS image_type'])
-            ->andWhere(['business_id' => $id]);
+            ->andWhere(['business_id' => $id])
+            ->andWhere(['type' => 'Photo']);
 
         $model = (new \yii\db\Query())
-            ->from(['image_business_user' => $modelBusinessImage->union($modelUserPostMain)]);
+            ->from(['image_business_user' => $modelBusinessImage->union($modelUserPostMain)])
+            ->andFilterWhere(['image_type' => $imageType]);
 
         $provider = new ActiveDataProvider([
             'query' => $model,
@@ -119,10 +121,12 @@ class BusinessController extends \yii\rest\Controller
         $modelUserPostMain = UserPostMain::find()
             ->select(['COUNT(id) AS count', 'CONCAT(\'User Post\') as image_type'])
             ->andWhere(['business_id' => $id])
+            ->andWhere(['type' => 'Photo'])
             ->groupBy('CONCAT(\'User Post\')');
 
         $model = (new \yii\db\Query())
-            ->from(['image_business_user' => $modelBusinessImage->union($modelUserPostMain)])
+            ->from(['count_image_business_user' => $modelBusinessImage->union($modelUserPostMain)])
+            ->orderBy(['image_type' => SORT_ASC])
             ->all();
 
         return $model;
