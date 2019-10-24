@@ -26,6 +26,7 @@ class OrderForUserController extends \yii\rest\Controller
                     'actions' => [
                         'transaction-item-list' => ['GET'],
                         'user-promo-item-list' => ['GET'],
+                        'save-order' => ['POST'],
                         'set-item-amount' => ['POST'],
                         'remove-item' => ['POST'],
                         'set-notes' => ['POST'],
@@ -110,6 +111,76 @@ class OrderForUserController extends \yii\rest\Controller
         \Yii::$app->formatter->timeZone = 'UTC';
 
         return $modelPromoItem;
+    }
+
+    public function actionSaveOrder()
+    {
+        $result = [];
+
+        $post = \Yii::$app->request->post();
+
+        $modelTransactionSession = TransactionSession::find()
+            ->andWhere(['user_ordered' => $post['user_id']])
+            ->andWhere(['status' => 'Open'])
+            ->one();
+
+        if (!empty($modelTransactionSession)) {
+
+            $modelTransactionSession->total_price += $post['product_price'];
+            $modelTransactionSession->total_amount++;
+        } else {
+
+            $modelTransactionSession = new TransactionSession();
+            $modelTransactionSession->user_ordered = $post['user_id'];
+            $modelTransactionSession->business_id = $post['business_id'];
+            $modelTransactionSession->total_price = $post['product_price'];
+            $modelTransactionSession->total_amount = 1;
+            $modelTransactionSession->status = 'Open';
+        }
+
+        if ($modelTransactionSession->business_id == $post['business_id']) {
+
+            $transaction = \Yii::$app->db->beginTransaction();
+            $flag = false;
+
+            if (($flag = $modelTransactionSession->save())) {
+
+                $modelTransactionItem = TransactionItem::find()
+                    ->andWhere(['transaction_session_id' => $modelTransactionSession->id])
+                    ->andWhere(['business_product_id' => $post['product_id']])
+                    ->one();
+
+                $modelTransactionItem = new TransactionItem();
+                $modelTransactionItem->transaction_session_id = $modelTransactionSession->id;
+                $modelTransactionItem->business_product_id = $post['product_id'];
+                $modelTransactionItem->price = $post['product_price'];
+                $modelTransactionItem->amount = 1;
+
+                $flag = $modelTransactionItem->save();
+            }
+
+            if ($flag) {
+
+                $transaction->commit();
+
+                $result['success'] = true;
+                $result['item_id'] = $modelTransactionItem->id;
+                $result['total_price'] = $modelTransactionSession->total_price;
+                $result['total_amount'] = $modelTransactionSession->total_amount;
+            } else {
+
+                $transaction->rollBack();
+
+                $result['success'] = false;
+                $result['message'] = 'Terjadi kesalahan saat menambahkan pesanan, silahkan pesan kembali';
+            }
+        } else {
+
+            $result['success'] = false;
+            $result['message'] = 'Mohon maaf anda tidak dapat memesan dari dua tempat secara bersamaan';
+        }
+
+        return $result;
     }
 
     public function actionSetItemAmount()

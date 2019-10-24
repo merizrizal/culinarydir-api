@@ -354,8 +354,8 @@ class BusinessController extends \yii\rest\Controller
                 'businessProducts' => function ($query) {
 
                     $query->select([
-                        'business_product.name', 'business_product.description', 'business_product.price',
-                        'business_product.is_available', 'business_product.business_product_category_id',
+                        'business_product.id', 'business_product.name', 'business_product.description',
+                        'business_product.price', 'business_product.is_available', 'business_product.business_product_category_id',
                         'business_product.business_id'
                     ])
                     ->andOnCondition(['business_product.not_active' => false]);

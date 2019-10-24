@@ -23,7 +23,6 @@ class ActionController extends \yii\rest\Controller
                     'class' => VerbFilter::className(),
                     'actions' => [
                         'love-business' => ['POST'],
-                        'visit-business' => ['POST'],
                         'submit-report' => ['POST']
                     ]
                 ]
