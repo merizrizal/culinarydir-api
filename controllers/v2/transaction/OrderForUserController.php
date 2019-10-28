@@ -194,11 +194,6 @@ class OrderForUserController extends \yii\rest\Controller
             ->andWhere(['transaction_item.id' => !empty($post['id']) ? $post['id'] : null])
             ->one();
 
-        if (empty($modelTransactionItem)) {
-
-            throw new NotFoundHttpException('The requested page does not exist.');
-        }
-
         $transaction = \Yii::$app->db->beginTransaction();
         $flag = false;
 
@@ -250,11 +245,6 @@ class OrderForUserController extends \yii\rest\Controller
             ->andWhere(['transaction_item.id' => !empty($post['id']) ? $post['id'] : null])
             ->one();
 
-        if (empty($modelTransactionItem)) {
-
-            throw new NotFoundHttpException('The requested page does not exist.');
-        }
-
         $transaction = \Yii::$app->db->beginTransaction();
         $flag = false;
 
@@ -299,11 +289,6 @@ class OrderForUserController extends \yii\rest\Controller
         $modelTransactionItem = TransactionItem::find()
             ->andWhere(['transaction_item.id' => !empty($post['id']) ? $post['id'] : null])
             ->one();
-
-        if (empty($modelTransactionItem)) {
-
-            throw new NotFoundHttpException('The requested page does not exist.');
-        }
 
         $modelTransactionItem->note = !empty($post['note']) ? $post['note'] : null;
 

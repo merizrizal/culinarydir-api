@@ -11,6 +11,7 @@ use core\models\BusinessProductCategory;
 use core\models\BusinessPromo;
 use core\models\Promo;
 use core\models\RatingComponent;
+use core\models\TransactionSession;
 use core\models\UserLove;
 use core\models\UserPostMain;
 use yii\data\ActiveDataProvider;
@@ -370,8 +371,13 @@ class BusinessController extends \yii\rest\Controller
         return $data;
     }
 
-    public function actionBusinessProductCategory($id)
+    public function actionBusinessProductCategory($id, $userId = null)
     {
+        $modelTransactionSession = TransactionSession::find()
+            ->andWhere(['transaction_session.user_ordered' => $userId])
+            ->andWhere(['transaction_session.status' => 'Open'])
+            ->asArray()->one();
+
         $modelBusinessProductCategory = BusinessProductCategory::find()
             ->select(['business_product_category.id', 'business_product_category.product_category_id', 'product_category.name'])
             ->joinWith([
@@ -387,6 +393,14 @@ class BusinessController extends \yii\rest\Controller
                         'business_product.business_id'
                     ])
                     ->andOnCondition(['business_product.not_active' => false]);
+                },
+                'businessProducts.transactionItems' => function ($query) use ($modelTransactionSession) {
+
+                    $query->select([
+                        'transaction_item.id', 'transaction_item.business_product_id', 'transaction_item.note',
+                        'transaction_item.price', 'transaction_item.amount'
+                    ])
+                    ->andOnCondition(['transaction_item.transaction_session_id' => $modelTransactionSession['id']]);
                 }
             ])
             ->andWhere(['business_product_category.business_id' => $id])
