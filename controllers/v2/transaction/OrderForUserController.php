@@ -36,7 +36,8 @@ class OrderForUserController extends \yii\rest\Controller
                         'reorder' => ['POST'],
                         'get-order-driver' => ['GET'],
                         'cancel-finding-driver' => ['POST'],
-                        'cancel-ongoing-order' => ['POST']
+                        'cancel-ongoing-order' => ['POST'],
+                        'check-active-transaction' => ['GET']
                     ],
                 ],
             ]);
@@ -222,6 +223,7 @@ class OrderForUserController extends \yii\rest\Controller
 
             $result['success'] = true;
             $result['amount'] = $modelTransactionItem->amount;
+            $result['total_amount'] = $modelTransactionSession->total_amount;
             $result['total_price'] = $modelTransactionSession->total_price;
         } else {
 
@@ -269,6 +271,8 @@ class OrderForUserController extends \yii\rest\Controller
             $transaction->commit();
 
             $result['success'] = true;
+            $result['total_amount'] = $modelTransactionSession->total_amount;
+            $result['total_price'] = $modelTransactionSession->total_price;
         } else {
 
             $transaction->rollBack();
@@ -775,6 +779,19 @@ class OrderForUserController extends \yii\rest\Controller
         }
 
         return $result;
+    }
 
+    public function actionCheckActiveTransaction($userId = null)
+    {
+        $result = [];
+
+        $modelTransactionSession = TransactionSession::find()
+            ->andFilterWhere(['user_ordered' => $userId])
+            ->andFilterWhere(['status' => 'Open'])
+            ->asArray()->one();
+
+        $result['transaction_active'] = !empty($modelTransactionSession);
+
+        return $result;
     }
 }
