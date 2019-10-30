@@ -401,10 +401,6 @@ class BusinessController extends \yii\rest\Controller
                         'transaction_item.price', 'transaction_item.amount', 'transaction_item.transaction_session_id'
                     ])
                     ->andOnCondition(['transaction_item.transaction_session_id' => $modelTransactionSession['id']]);
-                },
-                'businessProducts.transactionItems.transactionSession' => function ($query) {
-
-                    $query->select(['transaction_session.id', 'transaction_session.total_price', 'transaction_session.total_amount']);
                 }
             ])
             ->andWhere(['business_product_category.business_id' => $id])

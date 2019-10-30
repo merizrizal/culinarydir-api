@@ -37,7 +37,7 @@ class OrderForUserController extends \yii\rest\Controller
                         'get-order-driver' => ['GET'],
                         'cancel-finding-driver' => ['POST'],
                         'cancel-ongoing-order' => ['POST'],
-                        'check-active-transaction' => ['GET']
+                        'get-active-transaction' => ['GET']
                     ],
                 ],
             ]);
@@ -121,6 +121,16 @@ class OrderForUserController extends \yii\rest\Controller
         $post = \Yii::$app->request->post();
 
         $modelTransactionSession = TransactionSession::find()
+            ->joinWith([
+                'business' => function ($query) {
+
+                    $query->select(['business.id', 'business.name']);
+                },
+                'business.businessLocation.village' => function ($query) {
+
+                    $query->select(['village.name']);
+                }
+            ])
             ->andWhere(['user_ordered' => $post['user_id']])
             ->andWhere(['status' => 'Open'])
             ->one();
@@ -168,6 +178,8 @@ class OrderForUserController extends \yii\rest\Controller
                 $result['item_id'] = $modelTransactionItem->id;
                 $result['total_price'] = $modelTransactionSession->total_price;
                 $result['total_amount'] = $modelTransactionSession->total_amount;
+                $result['business_name'] = $modelTransactionSession['business']['name'];
+                $result['business_location'] = $modelTransactionSession['business']['businessLocation']['village']['name'];
             } else {
 
                 $transaction->rollBack();
@@ -223,8 +235,10 @@ class OrderForUserController extends \yii\rest\Controller
 
             $result['success'] = true;
             $result['amount'] = $modelTransactionItem->amount;
-            $result['total_amount'] = $modelTransactionSession->total_amount;
             $result['total_price'] = $modelTransactionSession->total_price;
+            $result['total_amount'] = $modelTransactionSession->total_amount;
+            $result['business_name'] = $modelTransactionSession['business']['name'];
+            $result['business_location'] = $modelTransactionSession['business']['businessLocation']['village']['name'];
         } else {
 
             $transaction->rollBack();
@@ -271,8 +285,10 @@ class OrderForUserController extends \yii\rest\Controller
             $transaction->commit();
 
             $result['success'] = true;
-            $result['total_amount'] = $modelTransactionSession->total_amount;
             $result['total_price'] = $modelTransactionSession->total_price;
+            $result['total_amount'] = $modelTransactionSession->total_amount;
+            $result['business_name'] = $modelTransactionSession['business']['name'];
+            $result['business_location'] = $modelTransactionSession['business']['businessLocation']['village']['name'];
         } else {
 
             $transaction->rollBack();
@@ -781,16 +797,36 @@ class OrderForUserController extends \yii\rest\Controller
         return $result;
     }
 
-    public function actionCheckActiveTransaction($userId = null)
+    public function actionGetActiveTransaction($userId = null)
     {
         $result = [];
 
+        $result['is_active'] = false;
+
         $modelTransactionSession = TransactionSession::find()
-            ->andFilterWhere(['user_ordered' => $userId])
-            ->andFilterWhere(['status' => 'Open'])
+            ->select(['transaction_session.business_id', 'transaction_session.total_amount', 'transaction_session.total_price'])
+            ->joinWith([
+                'business' => function ($query) {
+
+                    $query->select(['business.id', 'business.name']);
+                },
+                'business.businessLocation.village' => function ($query) {
+
+                    $query->select(['village.name']);
+                }
+            ])
+            ->andWhere(['transaction_session.user_ordered' => $userId])
+            ->andWhere(['transaction_session.status' => 'Open'])
             ->asArray()->one();
 
-        $result['transaction_active'] = !empty($modelTransactionSession);
+        if (!empty($modelTransactionSession)) {
+
+            $result['is_active'] = true;
+            $result['total_amount'] = $modelTransactionSession['total_amount'];
+            $result['total_price'] = $modelTransactionSession['total_price'];
+            $result['business_name'] = $modelTransactionSession['business']['name'];
+            $result['business_location'] = $modelTransactionSession['business']['businessLocation']['village']['name'];
+        }
 
         return $result;
     }
