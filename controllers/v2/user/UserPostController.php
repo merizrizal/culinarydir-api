@@ -4,6 +4,7 @@ namespace api\controllers\v2\user;
 
 use core\models\UserPostLove;
 use core\models\UserPostMain;
+use sycomponent\Tools;
 use yii\data\ActiveDataProvider;
 use yii\filters\VerbFilter;
 
@@ -29,6 +30,7 @@ class UserPostController extends \yii\rest\Controller
                     'actions' => [
                         'activity-list' => ['GET'],
                         'love' => ['POST'],
+                        'upload-image-user' => ['POST'],
                     ],
                 ],
             ]);
@@ -161,6 +163,67 @@ class UserPostController extends \yii\rest\Controller
 
             $result['success'] = false;
             $result['message'] = 'Proses like gagal disimpan';
+        }
+
+        return $result;
+    }
+
+    public function actionUploadImageUser()
+    {
+        $post = \Yii::$app->request->post();
+
+        $flag = false;
+
+        $result = [];
+        $transaction = \Yii::$app->db->beginTransaction();
+
+        if (!empty($post['user_id'] && !empty($post['business_id']))) {
+
+            $modelUserPostMainPhoto = new UserPostMain();
+
+            if (!empty($modelUserPostMainPhoto)) {
+
+                $image = Tools::uploadFileWithoutModel('/img/user_post/', 'image', $modelUserPostMainPhoto->id, '', true);
+
+                if (($flag = !empty($image))) {
+
+                    $modelUserPostMainPhoto->unique_id = \Yii::$app->security->generateRandomString();
+                    $modelUserPostMainPhoto->business_id = $post['business_id'];
+                    $modelUserPostMainPhoto->user_id = $post['user_id'];
+                    $modelUserPostMainPhoto->type = 'Photo';
+                    $modelUserPostMainPhoto->text = $post['text'];
+                    $modelUserPostMainPhoto->image = $image;
+                    $modelUserPostMainPhoto->is_publish = true;
+                    $modelUserPostMainPhoto->love_value = 0;
+
+                    if (!($flag = $modelUserPostMainPhoto->save())) {
+
+                        $result['message'] = $modelUserPostMainPhoto->getErrors();
+                    }
+                } else {
+
+                    $result['message'] = 'Upload gambar gagal';
+                }
+            } else {
+
+                $result['message'] = 'Business ID tidak ditemukan';
+            }
+        } else {
+
+            $result['message'] = 'Business ID tidak boleh kosong';
+        }
+
+        if ($flag) {
+
+            $result['success'] = true;
+            $result['message'] = 'Upload foto Berhasil';
+
+            $transaction->commit();
+        } else {
+
+            $result['success'] = false;
+
+            $transaction->rollBack();
         }
 
         return $result;
