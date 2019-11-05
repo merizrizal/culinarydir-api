@@ -29,8 +29,8 @@ class UserPostController extends \yii\rest\Controller
                     'class' => VerbFilter::className(),
                     'actions' => [
                         'activity-list' => ['GET'],
-                        'love' => ['POST'],
-                        'upload-image-user' => ['POST'],
+                        'love-review' => ['POST'],
+                        'upload-business-review-photo' => ['POST'],
                     ],
                 ],
             ]);
@@ -98,7 +98,7 @@ class UserPostController extends \yii\rest\Controller
         return $provider;
     }
 
-    public function actionLove()
+    public function actionLoveReview()
     {
         $post = \Yii::$app->request->post();
 
@@ -168,7 +168,7 @@ class UserPostController extends \yii\rest\Controller
         return $result;
     }
 
-    public function actionUploadImageUser()
+    public function actionUploadBusinessReviewPhoto()
     {
         $post = \Yii::$app->request->post();
 
@@ -191,7 +191,7 @@ class UserPostController extends \yii\rest\Controller
                     $modelUserPostMainPhoto->business_id = $post['business_id'];
                     $modelUserPostMainPhoto->user_id = $post['user_id'];
                     $modelUserPostMainPhoto->type = 'Photo';
-                    $modelUserPostMainPhoto->text = $post['text'];
+                    $modelUserPostMainPhoto->text = '';
                     $modelUserPostMainPhoto->image = $image;
                     $modelUserPostMainPhoto->is_publish = true;
                     $modelUserPostMainPhoto->love_value = 0;
