@@ -797,7 +797,7 @@ class OrderForUserController extends \yii\rest\Controller
         return $result;
     }
 
-    public function actionGetActiveTransaction($userId = null)
+    public function actionGetActiveTransaction($userId)
     {
         $result = [];
 

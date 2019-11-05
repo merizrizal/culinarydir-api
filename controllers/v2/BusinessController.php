@@ -259,8 +259,8 @@ class BusinessController extends \yii\rest\Controller
             $businessProductCategoryList .= $dataBusinessProductCategory['name'] . ", ";
         }
 
-        $data['business_facility_list'] = trim($businessFacilityList, ", ");
-        $data['business_product_category_list'] = trim($businessProductCategoryList, ", ");
+        $data['business_facility'] = trim($businessFacilityList, ", ");
+        $data['business_product_category'] = trim($businessProductCategoryList, ", ");
 
         $data['userLoves'] = UserLove::find()
             ->select(['business_id'])
@@ -356,7 +356,7 @@ class BusinessController extends \yii\rest\Controller
 
                 foreach ($data['membershipType']['membershipTypeProductServices'] as $membershipTypeProductService) {
 
-                    if (($data['isOrderOnline'] = !empty($membershipTypeProductService['productService']))) {
+                    if (($data['is_order_online'] = !empty($membershipTypeProductService['productService']))) {
 
                         break;
                     }
@@ -373,10 +373,7 @@ class BusinessController extends \yii\rest\Controller
 
     public function actionBusinessProductCategory($id, $userId = null)
     {
-        $modelTransactionSession = TransactionSession::find()
-            ->andWhere(['transaction_session.user_ordered' => $userId])
-            ->andWhere(['transaction_session.status' => 'Open'])
-            ->asArray()->one();
+        $result = [];
 
         $modelBusinessProductCategory = BusinessProductCategory::find()
             ->select(['business_product_category.id', 'business_product_category.product_category_id', 'product_category.name'])
@@ -393,21 +390,51 @@ class BusinessController extends \yii\rest\Controller
                         'business_product.business_id'
                     ])
                     ->andOnCondition(['business_product.not_active' => false]);
-                },
-                'businessProducts.transactionItems' => function ($query) use ($modelTransactionSession) {
-
-                    $query->select([
-                        'transaction_item.id', 'transaction_item.business_product_id', 'transaction_item.note',
-                        'transaction_item.price', 'transaction_item.amount', 'transaction_item.transaction_session_id'
-                    ])
-                    ->andOnCondition(['transaction_item.transaction_session_id' => $modelTransactionSession['id']]);
                 }
             ])
             ->andWhere(['business_product_category.business_id' => $id])
             ->andWhere(['OR', ['product_category.type' => 'Menu'], ['product_category.type' => 'Specific-Menu']])
             ->asArray()->all();
 
-        return $modelBusinessProductCategory;
+        $modelTransactionSession = TransactionSession::find()
+            ->select(['transaction_session.id'])
+            ->joinWith(['transactionItems'])
+            ->andWhere(['transaction_session.user_ordered' => $userId])
+            ->andWhere(['transaction_session.status' => 'Open'])
+            ->asArray()->one();
+
+        foreach ($modelBusinessProductCategory as $i => $dataBusinessProductCategory) {
+
+            $result[$i]['name'] = $dataBusinessProductCategory['name'];
+
+            foreach ($dataBusinessProductCategory['businessProducts'] as $j => $dataBusinessProduct) {
+
+                $result[$i]['businessProducts'][$j]['id'] = $dataBusinessProduct['id'];
+                $result[$i]['businessProducts'][$j]['name'] = $dataBusinessProduct['name'];
+                $result[$i]['businessProducts'][$j]['description'] = $dataBusinessProduct['description'];
+                $result[$i]['businessProducts'][$j]['price'] = $dataBusinessProduct['price'];
+                $result[$i]['businessProducts'][$j]['is_available'] = $dataBusinessProduct['is_available'];
+                $result[$i]['businessProducts'][$j]['business_id'] = $dataBusinessProduct['business_id'];
+
+                if (!empty($modelTransactionSession)) {
+
+                    foreach ($modelTransactionSession['transactionItems'] as $dataTransactionItem) {
+
+                        if ($dataBusinessProduct['id'] == $dataTransactionItem['business_product_id']) {
+
+                            $result[$i]['businessProducts'][$j]['transactionItem']['id'] = $dataTransactionItem['id'];
+                            $result[$i]['businessProducts'][$j]['transactionItem']['note'] = $dataTransactionItem['note'];
+                            $result[$i]['businessProducts'][$j]['transactionItem']['price'] = $dataTransactionItem['price'];
+                            $result[$i]['businessProducts'][$j]['transactionItem']['amount'] = $dataTransactionItem['amount'];
+
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $result;
     }
 
     public function actionBusinessPromo($id)
