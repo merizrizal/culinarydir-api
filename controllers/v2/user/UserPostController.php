@@ -29,7 +29,7 @@ class UserPostController extends \yii\rest\Controller
                     'class' => VerbFilter::className(),
                     'actions' => [
                         'activity-list' => ['GET'],
-                        'love-review' => ['POST'],
+                        'love-business-review' => ['POST'],
                         'upload-business-review-photo' => ['POST'],
                     ],
                 ],
@@ -98,7 +98,7 @@ class UserPostController extends \yii\rest\Controller
         return $provider;
     }
 
-    public function actionLoveReview()
+    public function actionLoveBusinessReview()
     {
         $post = \Yii::$app->request->post();
 
