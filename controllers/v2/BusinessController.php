@@ -41,11 +41,13 @@ class BusinessController extends \yii\rest\Controller
                         'delivery-list' => ['GET'],
                         'payment-list' => ['GET'],
                         'album-list' => ['GET'],
+                        'count-category-album' => ['GET'],
                         'news-promo' => ['GET'],
                         'business-detail' => ['GET'],
                         'business-product-category' => ['GET'],
                         'business-promo' => ['GET'],
-                        'business-review' => ['GET']
+                        'business-review' => ['GET'],
+                        'count-menu-order' => ['GET']
                     ],
                 ],
             ]);
@@ -210,7 +212,8 @@ class BusinessController extends \yii\rest\Controller
                             $query->select(['rating_component.id'])
                                 ->andOnCondition(['rating_component.is_active' => true]);
                         }
-                    ]);
+                    ])
+                    ->orderBy(['rating_component.name' => SORT_ASC]);
                 },
                 'membershipType' => function ($query) {
 
@@ -551,5 +554,72 @@ class BusinessController extends \yii\rest\Controller
         }
 
         return $data;
+    }
+
+    public function actionCountMenuOrder($id)
+    {
+        $modelBusiness = Business::find()
+            ->select(['business.id'])
+            ->joinWith([
+                'businessProducts' => function ($query) {
+
+                    $query->select(['business_product.id', 'business_product.name', 'business_product.business_id'])
+                        ->andOnCondition(['business_product.not_active' => false]);
+                },
+                'businessProducts.transactionItems' => function ($query) {
+
+                    $query->select(['transaction_item.business_product_id', 'transaction_item.amount']);
+                }
+            ])
+            ->andWhere(['business.id' => $id])
+            ->asArray()->one();
+
+        $idx = 0;
+        $temp = [];
+
+        foreach ($modelBusiness['businessProducts'] as $dataBusinessProduct) {
+
+            $temp[$idx]['menu'] = $dataBusinessProduct['name'];
+
+            $orderCounter = 0;
+
+            foreach ($dataBusinessProduct['transactionItems'] as $dataTransactionItem) {
+
+                $orderCounter += $dataTransactionItem['amount'];
+            }
+
+            $temp[$idx]['order_count'] = $orderCounter;
+
+            $idx++;
+        }
+
+        uksort($temp, function ($a, $b) use ($temp) {
+
+            return $temp[$b]['order_count'] - $temp[$a]['order_count'];
+        });
+
+        $idx = 0;
+        $result = [];
+
+        foreach ($temp as $dataTemp) {
+
+            if ($dataTemp['order_count'] != 0) {
+
+                $result[$idx]['menu'] = $dataTemp['menu'];
+                $result[$idx]['order_count'] = $dataTemp['order_count'];
+
+                $idx++;
+
+                if ($idx >= 5) {
+
+                    break;
+                }
+            } else {
+
+                break;
+            }
+        }
+
+        return $result;
     }
 }
