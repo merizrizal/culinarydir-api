@@ -46,6 +46,7 @@ class BusinessController extends \yii\rest\Controller
                         'business-detail' => ['GET'],
                         'business-product-category' => ['GET'],
                         'business-promo' => ['GET'],
+                        'my-review' => ['GET'],
                         'business-review' => ['GET'],
                         'count-menu-order' => ['GET']
                     ],
@@ -478,10 +479,8 @@ class BusinessController extends \yii\rest\Controller
         return $modelBusinessPromo;
     }
 
-    public function actionBusinessReview($id, $userId = null)
+    public function actionMyReview($id, $userId)
     {
-        $provider = null;
-
         $modelUserPostMain = UserPostMain::find()
             ->select([
                 'user_post_main.id', 'user_post_main.user_id', 'user.image as user_image', 'user.full_name',
@@ -491,6 +490,10 @@ class BusinessController extends \yii\rest\Controller
                 'user' => function ($query) {
 
                     $query->select(['user.id']);
+                },
+                'user.userPosts' => function ($query) {
+
+                    $query->select(['user_post.id', 'user_post.user_id']);
                 },
                 'userPostMains child' => function ($query) {
 
@@ -509,22 +512,114 @@ class BusinessController extends \yii\rest\Controller
                             }
                         ]);
                 },
-                'userPostLoves' => function ($query) use ($userId) {
+                'userPostLoves' => function ($query) {
 
                     $query->select(['user_post_love.id', 'user_post_love.user_post_main_id'])
-                        ->andOnCondition(['user_post_love.user_id' => !empty($userId) ? $userId : null])
                         ->andOnCondition(['user_post_love.is_active' => true]);
                 },
                 'userPostComments' => function ($query) {
 
                     $query->select([
                         'user_post_comment.text', 'user_post_comment.user_post_main_id', 'user_post_comment.user_id',
-                        'user_post_comment.created_at', 'user_comment.full_name', 'user_comment.image'
+                        'user_post_comment.created_at', 'user_comment.full_name', 'user_comment.image as user_image'
                     ])
                     ->joinWith([
                         'user user_comment' => function ($query) {
 
-                          $query->select(['user_comment.id']);
+                            $query->select(['user_comment.id']);
+                        }
+                    ]);
+                }
+            ])
+            ->andWhere(['user_post_main.parent_id' => null])
+            ->andWhere(['user_post_main.business_id' => $id])
+            ->andWhere(['user_post.user_id' => $userId])
+            ->andWhere(['user_post_main.type' => 'Review'])
+            ->andWhere(['user_post_main.is_publish' => true])
+            ->cache(60)
+            ->asArray()->one();
+
+        $modelUserPostMain['created_at'] = \Yii::$app->formatter->asDate($modelUserPostMain['created_at'], 'long');
+        $modelUserPostMain['comment_value'] = !empty($modelUserPostMain['userPostComments']) ? count($modelUserPostMain['userPostComments']) : 0;
+        $modelUserPostMain['user_post_count'] = !empty($modelUserPostMain['user']['userPosts']) ? count($modelUserPostMain['user']['userPosts']) : 0;
+
+        if (!empty($modelUserPostMain['userVotes'])) {
+
+            $ratingComponentValue = [];
+            $totalVoteValue = 0;
+
+            foreach ($modelUserPostMain['userVotes'] as $i => $dataUserVote) {
+
+                if (!empty($dataUserVote['ratingComponent'])) {
+
+                    $totalVoteValue += $dataUserVote['vote_value'];
+
+                    $ratingComponentValue[$i]['name'] = $dataUserVote['name'];
+                    $ratingComponentValue[$i]['vote_value'] = $dataUserVote['vote_value'];
+                }
+            }
+
+            $overallValue = !empty($totalVoteValue) && !empty($ratingComponentValue) ? ($totalVoteValue / count($ratingComponentValue)) : 0;
+
+            $modelUserPostMain['dataUserVoteReview'] = [
+                'overall_value' => $overallValue,
+                'ratingComponent' => $ratingComponentValue
+            ];
+        }
+
+        return $modelUserPostMain;
+    }
+
+    public function actionBusinessReview($id, $userId = null)
+    {
+        $provider = null;
+
+        $modelUserPostMain = UserPostMain::find()
+            ->select([
+                'user_post_main.id', 'user_post_main.user_id', 'user.image as user_image', 'user.full_name',
+                'user_post_main.text', 'user_post_main.love_value', 'user_post_main.created_at'
+            ])
+            ->joinWith([
+                'user' => function ($query) {
+
+                    $query->select(['user.id']);
+                },
+                'user.userPosts' => function ($query) {
+
+                    $query->select(['user_post.id', 'user_post.user_id']);
+                },
+                'userPostMains child' => function ($query) {
+
+                    $query->select(['child.parent_id', 'child.image'])
+                        ->andOnCondition(['child.is_publish' => true])
+                        ->andOnCondition(['child.type' => 'Photo']);
+                },
+                'userVotes' => function ($query) {
+
+                    $query->select(['rating_component.name', 'user_vote.vote_value', 'user_vote.rating_component_id', 'user_vote.user_post_main_id'])
+                        ->joinWith([
+                            'ratingComponent' => function ($query) {
+
+                                $query->select(['rating_component.id'])
+                                    ->andOnCondition(['rating_component.is_active' => true]);
+                            }
+                        ]);
+                },
+                'userPostLoves' => function ($query) {
+
+                    $query->select(['user_post_love.id', 'user_post_love.user_post_main_id'])
+                        ->andOnCondition(['user_post_love.is_active' => true]);
+                },
+                'userPostComments' => function ($query) {
+
+                    $query->select([
+                        'user_post_comment.text', 'user_post_comment.user_post_main_id', 'user_post_comment.user_id',
+                        'user_post_comment.created_at', 'user_comment.full_name', 'user_comment.image as user_image'
+                    ])
+                    ->joinWith([
+                        'user user_comment' => function ($query) {
+
+                            $query->select(['user_comment.id']);
                         }
                     ]);
                 }
@@ -540,26 +635,31 @@ class BusinessController extends \yii\rest\Controller
 
         foreach ($modelUserPostMain as $i => $dataUserPostMain) {
 
+            $modelUserPostMain[$i]['created_at'] = \Yii::$app->formatter->asDate($dataUserPostMain['created_at'], 'long');
+            $modelUserPostMain[$i]['comment_value'] = !empty($dataUserPostMain['userPostComments']) ? count($dataUserPostMain['userPostComments']) : 0;
+            $modelUserPostMain[$i]['user_post_count'] = !empty($dataUserPostMain['user']['userPosts']) ? count($dataUserPostMain['user']['userPosts']) : 0;
+
             if (!empty($dataUserPostMain['userVotes'])) {
 
                 $ratingComponentValue = [];
                 $totalVoteValue = 0;
 
-                foreach ($dataUserPostMain['userVotes'] as $dataUserVote) {
+                foreach ($dataUserPostMain['userVotes'] as $j => $dataUserVote) {
 
                     if (!empty($dataUserVote['ratingComponent'])) {
 
                         $totalVoteValue += $dataUserVote['vote_value'];
 
-                        $ratingComponentValue[$dataUserVote['name']] = $dataUserVote['vote_value'];
+                        $ratingComponentValue[$j]['name'] = $dataUserVote['name'];
+                        $ratingComponentValue[$j]['vote_value'] = $dataUserVote['vote_value'];
                     }
                 }
 
                 $overallValue = !empty($totalVoteValue) && !empty($ratingComponentValue) ? ($totalVoteValue / count($ratingComponentValue)) : 0;
 
                 $modelUserPostMain[$i]['dataUserVoteReview'] = [
-                    'overallValue' => $overallValue,
-                    'ratingComponentValue' => $ratingComponentValue
+                    'overall_value' => $overallValue,
+                    'ratingComponent' => $ratingComponentValue
                 ];
             }
         }
