@@ -41,11 +41,13 @@ class BusinessController extends \yii\rest\Controller
                         'delivery-list' => ['GET'],
                         'payment-list' => ['GET'],
                         'album-list' => ['GET'],
+                        'count-category-album' => ['GET'],
                         'news-promo' => ['GET'],
                         'business-detail' => ['GET'],
                         'business-product-category' => ['GET'],
                         'business-promo' => ['GET'],
-                        'business-review' => ['GET']
+                        'business-review' => ['GET'],
+                        'count-menu-order' => ['GET']
                     ],
                 ],
             ]);
@@ -210,7 +212,8 @@ class BusinessController extends \yii\rest\Controller
                             $query->select(['rating_component.id'])
                                 ->andOnCondition(['rating_component.is_active' => true]);
                         }
-                    ]);
+                    ])
+                    ->orderBy(['rating_component.order' => SORT_ASC]);
                 },
                 'membershipType' => function ($query) {
 
@@ -366,6 +369,20 @@ class BusinessController extends \yii\rest\Controller
 
         $data['business_whatsapp'] = !empty($data['phone3']) ? 'https://api.whatsapp.com/send?phone=62' . substr(str_replace('-', '', $data['phone3']), 1) : null;
 
+        if (empty($data['businessDetailVotes'])) {
+
+            $modelRatingComponent = RatingComponent::find()
+                ->andWhere(['is_active' => true])
+                ->orderBy(['order' => SORT_ASC])
+                ->asArray()->all();
+
+            foreach ($modelRatingComponent as $i => $dataRatingComponent) {
+
+                $data['businessDetailVotes'][$i]['vote_value'] = 0;
+                $data['businessDetailVotes'][$i]['name'] = $dataRatingComponent['name'];
+            }
+        }
+
         \Yii::$app->formatter->timeZone = 'UTC';
 
         return $data;
@@ -461,13 +478,13 @@ class BusinessController extends \yii\rest\Controller
         return $modelBusinessPromo;
     }
 
-    public function actionBusinessReview($id, $userId)
+    public function actionBusinessReview($id, $userId = null)
     {
-        $data = [];
+        $provider = null;
 
-        $data['userPostMain'] = UserPostMain::find()
+        $modelUserPostMain = UserPostMain::find()
             ->select([
-                'user_post_main.id', 'user_post_main.user_id', 'user.image', 'user.full_name',
+                'user_post_main.id', 'user_post_main.user_id', 'user.image as user_image', 'user.full_name',
                 'user_post_main.text', 'user_post_main.love_value', 'user_post_main.created_at'
             ])
             ->joinWith([
@@ -477,21 +494,20 @@ class BusinessController extends \yii\rest\Controller
                 },
                 'userPostMains child' => function ($query) {
 
-                    $query->andOnCondition(['child.is_publish' => true])
-                        ->andOnCondition(['child.type' => 'Photo'])
-                        ->orderBy(['child.created_at' => SORT_ASC]);
+                    $query->select(['child.parent_id', 'child.image'])
+                        ->andOnCondition(['child.is_publish' => true])
+                        ->andOnCondition(['child.type' => 'Photo']);
                 },
                 'userVotes' => function ($query) {
 
                     $query->select(['rating_component.name', 'user_vote.vote_value', 'user_vote.rating_component_id', 'user_vote.user_post_main_id'])
-                    ->joinWith([
-                        'ratingComponent' => function ($query) {
+                        ->joinWith([
+                            'ratingComponent' => function ($query) {
 
-                            $query->select(['rating_component.id'])
-                                ->andOnCondition(['rating_component.is_active' => true]);
-                        }
-                    ])
-                    ->orderBy(['rating_component.order' => SORT_ASC]);
+                                $query->select(['rating_component.id'])
+                                    ->andOnCondition(['rating_component.is_active' => true]);
+                            }
+                        ]);
                 },
                 'userPostLoves' => function ($query) use ($userId) {
 
@@ -515,41 +531,110 @@ class BusinessController extends \yii\rest\Controller
             ])
             ->andWhere(['user_post_main.parent_id' => null])
             ->andWhere(['user_post_main.business_id' => $id])
-            ->andWhere(['user_post_main.user_id' => !empty($userId) ? $userId : null])
             ->andWhere(['user_post_main.type' => 'Review'])
             ->andWhere(['user_post_main.is_publish' => true])
+            ->orderBy(['user_post_main.created_at' => SORT_DESC])
             ->cache(60)
-            ->asArray()->one();
-
-        $data['ratingComponent'] = RatingComponent::find()
-            ->select(['name'])
-            ->where(['is_active' => true])
-            ->orderBy(['order' => SORT_ASC])
+            ->distinct()
             ->asArray()->all();
 
-        if (!empty($data['userPostMains']['userVotes'])) {
+        foreach ($modelUserPostMain as $i => $dataUserPostMain) {
 
-            $ratingComponentValue = [];
-            $totalVoteValue = 0;
+            if (!empty($dataUserPostMain['userVotes'])) {
 
-            foreach ($data['userPostMains']['userVotes'] as $dataUserVote) {
+                $ratingComponentValue = [];
+                $totalVoteValue = 0;
 
-                if (!empty($dataUserVote['ratingComponent'])) {
+                foreach ($dataUserPostMain['userVotes'] as $dataUserVote) {
 
-                    $totalVoteValue += $dataUserVote['vote_value'];
+                    if (!empty($dataUserVote['ratingComponent'])) {
 
-                    $ratingComponentValue[$dataUserVote['rating_component_id']] = $dataUserVote['vote_value'];
+                        $totalVoteValue += $dataUserVote['vote_value'];
+
+                        $ratingComponentValue[$dataUserVote['name']] = $dataUserVote['vote_value'];
+                    }
                 }
+
+                $overallValue = !empty($totalVoteValue) && !empty($ratingComponentValue) ? ($totalVoteValue / count($ratingComponentValue)) : 0;
+
+                $modelUserPostMain[$i]['dataUserVoteReview'] = [
+                    'overallValue' => $overallValue,
+                    'ratingComponentValue' => $ratingComponentValue
+                ];
             }
-
-            $overallValue = !empty($totalVoteValue) && !empty($ratingComponentValue) ? ($totalVoteValue / count($ratingComponentValue)) : 0;
-
-            $data['dataUserVoteReview'] = [
-                'overallValue' => $overallValue,
-                'ratingComponentValue' => $ratingComponentValue
-            ];
         }
 
-        return $data;
+        $provider = new ActiveDataProvider([
+            'models' => $modelUserPostMain,
+        ]);
+
+        return $provider;
+    }
+
+    public function actionCountMenuOrder($id)
+    {
+        $modelBusiness = Business::find()
+            ->select(['business.id'])
+            ->joinWith([
+                'businessProducts' => function ($query) {
+
+                    $query->select(['business_product.id', 'business_product.name', 'business_product.business_id'])
+                        ->andOnCondition(['business_product.not_active' => false]);
+                },
+                'businessProducts.transactionItems' => function ($query) {
+
+                    $query->select(['transaction_item.business_product_id', 'transaction_item.amount']);
+                }
+            ])
+            ->andWhere(['business.id' => $id])
+            ->asArray()->one();
+
+        $idx = 0;
+        $temp = [];
+
+        foreach ($modelBusiness['businessProducts'] as $dataBusinessProduct) {
+
+            $temp[$idx]['menu'] = $dataBusinessProduct['name'];
+
+            $orderCounter = 0;
+
+            foreach ($dataBusinessProduct['transactionItems'] as $dataTransactionItem) {
+
+                $orderCounter += $dataTransactionItem['amount'];
+            }
+
+            $temp[$idx]['order_count'] = $orderCounter;
+
+            $idx++;
+        }
+
+        uksort($temp, function ($a, $b) use ($temp) {
+
+            return $temp[$b]['order_count'] - $temp[$a]['order_count'];
+        });
+
+        $idx = 0;
+        $result = [];
+
+        foreach ($temp as $dataTemp) {
+
+            if ($dataTemp['order_count'] != 0) {
+
+                $result[$idx]['menu'] = $dataTemp['menu'];
+                $result[$idx]['order_count'] = $dataTemp['order_count'];
+
+                $idx++;
+
+                if ($idx >= 5) {
+
+                    break;
+                }
+            } else {
+
+                break;
+            }
+        }
+
+        return $result;
     }
 }
