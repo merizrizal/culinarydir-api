@@ -191,7 +191,7 @@ class UserPostController extends \yii\rest\Controller
                     $modelUserPostMainPhoto->business_id = $post['business_id'];
                     $modelUserPostMainPhoto->user_id = $post['user_id'];
                     $modelUserPostMainPhoto->type = 'Photo';
-                    $modelUserPostMainPhoto->text = '';
+                    $modelUserPostMainPhoto->text = $post['text'];
                     $modelUserPostMainPhoto->image = $image;
                     $modelUserPostMainPhoto->is_publish = true;
                     $modelUserPostMainPhoto->love_value = 0;
