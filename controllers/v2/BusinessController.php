@@ -96,17 +96,18 @@ class BusinessController extends \yii\rest\Controller
         $provider = null;
 
         $modelBusinessImage = BusinessImage::find()
-            ->select(['id', 'business_id', 'image', 'CONCAT(category) AS image_type'])
+            ->select(['id', 'business_id', 'image', 'CONCAT(category) AS image_type', 'created_at'])
             ->andWhere(['business_id' => $id]);
 
         $modelUserPostMain = UserPostMain::find()
-            ->select(['id', 'business_id', 'image', 'CONCAT(\'User Post\') AS image_type'])
+            ->select(['id', 'business_id', 'image', 'CONCAT(\'User Post\') AS image_type', 'created_at'])
             ->andWhere(['business_id' => $id])
             ->andWhere(['type' => 'Photo']);
 
         $model = (new \yii\db\Query())
             ->from(['image_business_user' => $modelBusinessImage->union($modelUserPostMain)])
-            ->andFilterWhere(['image_type' => $imageType]);
+            ->andFilterWhere(['image_type' => $imageType])
+            ->orderBy(['created_at' => SORT_DESC]);
 
         $provider = new ActiveDataProvider([
             'query' => $model,
