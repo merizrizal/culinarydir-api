@@ -539,32 +539,40 @@ class BusinessController extends \yii\rest\Controller
             ->cache(60)
             ->asArray()->one();
 
-        $modelUserPostMain['created_at'] = \Yii::$app->formatter->asDate($modelUserPostMain['created_at'], 'long');
-        $modelUserPostMain['comment_value'] = !empty($modelUserPostMain['userPostComments']) ? count($modelUserPostMain['userPostComments']) : 0;
-        $modelUserPostMain['user_post_count'] = !empty($modelUserPostMain['user']['userPosts']) ? count($modelUserPostMain['user']['userPosts']) : 0;
+        if (!empty($modelUserPostMain)) {
 
-        if (!empty($modelUserPostMain['userVotes'])) {
+            $modelUserPostMain['success'] = true;
+            $modelUserPostMain['created_at'] = \Yii::$app->formatter->asDate($modelUserPostMain['created_at'], 'long');
+            $modelUserPostMain['comment_value'] = !empty($modelUserPostMain['userPostComments']) ? count($modelUserPostMain['userPostComments']) : 0;
+            $modelUserPostMain['user_post_count'] = !empty($modelUserPostMain['user']['userPosts']) ? count($modelUserPostMain['user']['userPosts']) : 0;
+            $modelUserPostMain['user_post_image_count'] = !empty($modelUserPostMain['userPostMains']) ? count($modelUserPostMain['userPostMains']) : 0;
 
-            $ratingComponentValue = [];
-            $totalVoteValue = 0;
+            if (!empty($modelUserPostMain['userVotes'])) {
 
-            foreach ($modelUserPostMain['userVotes'] as $i => $dataUserVote) {
+                $ratingComponentValue = [];
+                $totalVoteValue = 0;
 
-                if (!empty($dataUserVote['ratingComponent'])) {
+                foreach ($modelUserPostMain['userVotes'] as $i => $dataUserVote) {
 
-                    $totalVoteValue += $dataUserVote['vote_value'];
+                    if (!empty($dataUserVote['ratingComponent'])) {
 
-                    $ratingComponentValue[$i]['name'] = $dataUserVote['name'];
-                    $ratingComponentValue[$i]['vote_value'] = $dataUserVote['vote_value'];
+                        $totalVoteValue += $dataUserVote['vote_value'];
+
+                        $ratingComponentValue[$i]['name'] = $dataUserVote['name'];
+                        $ratingComponentValue[$i]['vote_value'] = $dataUserVote['vote_value'];
+                    }
                 }
+
+                $overallValue = !empty($totalVoteValue) && !empty($ratingComponentValue) ? ($totalVoteValue / count($ratingComponentValue)) : 0;
+
+                $modelUserPostMain['dataUserVoteReview'] = [
+                    'overall_value' => $overallValue,
+                    'ratingComponent' => $ratingComponentValue
+                ];
             }
+        } else {
 
-            $overallValue = !empty($totalVoteValue) && !empty($ratingComponentValue) ? ($totalVoteValue / count($ratingComponentValue)) : 0;
-
-            $modelUserPostMain['dataUserVoteReview'] = [
-                'overall_value' => $overallValue,
-                'ratingComponent' => $ratingComponentValue
-            ];
+            $modelUserPostMain['success'] = false;
         }
 
         return $modelUserPostMain;
@@ -572,8 +580,6 @@ class BusinessController extends \yii\rest\Controller
 
     public function actionBusinessReview($id, $userId = null)
     {
-        $provider = null;
-
         $modelUserPostMain = UserPostMain::find()
             ->select([
                 'user_post_main.id', 'user_post_main.user_id', 'user.image as user_image', 'user.full_name',
@@ -628,16 +634,23 @@ class BusinessController extends \yii\rest\Controller
             ->andWhere(['user_post_main.business_id' => $id])
             ->andWhere(['user_post_main.type' => 'Review'])
             ->andWhere(['user_post_main.is_publish' => true])
+            ->andFilterWhere(['<>', 'user_post_main.user_id' , !empty($userId) ? $userId : null])
             ->orderBy(['user_post_main.created_at' => SORT_DESC])
             ->cache(60)
             ->distinct()
-            ->asArray()->all();
+            ->asArray();
 
-        foreach ($modelUserPostMain as $i => $dataUserPostMain) {
+        $provider = new ActiveDataProvider([
+            'query' => $modelUserPostMain
+        ]);
 
-            $modelUserPostMain[$i]['created_at'] = \Yii::$app->formatter->asDate($dataUserPostMain['created_at'], 'long');
-            $modelUserPostMain[$i]['comment_value'] = !empty($dataUserPostMain['userPostComments']) ? count($dataUserPostMain['userPostComments']) : 0;
-            $modelUserPostMain[$i]['user_post_count'] = !empty($dataUserPostMain['user']['userPosts']) ? count($dataUserPostMain['user']['userPosts']) : 0;
+        $models = $provider->models;
+
+        foreach ($models as $i => $dataUserPostMain) {
+
+            $models[$i]['created_at'] = \Yii::$app->formatter->asDate($dataUserPostMain['created_at'], 'long');
+            $models[$i]['comment_value'] = !empty($dataUserPostMain['userPostComments']) ? count($dataUserPostMain['userPostComments']) : 0;
+            $models[$i]['user_post_count'] = !empty($dataUserPostMain['user']['userPosts']) ? count($dataUserPostMain['user']['userPosts']) : 0;
 
             if (!empty($dataUserPostMain['userVotes'])) {
 
@@ -657,16 +670,14 @@ class BusinessController extends \yii\rest\Controller
 
                 $overallValue = !empty($totalVoteValue) && !empty($ratingComponentValue) ? ($totalVoteValue / count($ratingComponentValue)) : 0;
 
-                $modelUserPostMain[$i]['dataUserVoteReview'] = [
+                $models[$i]['dataUserVoteReview'] = [
                     'overall_value' => $overallValue,
                     'ratingComponent' => $ratingComponentValue
                 ];
             }
         }
 
-        $provider = new ActiveDataProvider([
-            'models' => $modelUserPostMain,
-        ]);
+        $provider->setModels($models);
 
         return $provider;
     }
