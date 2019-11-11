@@ -183,22 +183,32 @@ class UserPostController extends \yii\rest\Controller
 
             if (!empty($modelUserPostMainPhoto)) {
 
-                $image = Tools::uploadFileWithoutModel('/img/user_post/', 'image', $modelUserPostMainPhoto->id, '', true);
+                $images = Tools::uploadFilesWithoutModel('/img/user_post/', 'image', $modelUserPostMainPhoto->id, '', true);
 
-                if (($flag = !empty($image))) {
+                $dataUserPostMainPhoto = [];
 
-                    $modelUserPostMainPhoto->unique_id = \Yii::$app->security->generateRandomString();
-                    $modelUserPostMainPhoto->business_id = $post['business_id'];
-                    $modelUserPostMainPhoto->user_id = $post['user_id'];
-                    $modelUserPostMainPhoto->type = 'Photo';
-                    $modelUserPostMainPhoto->text = $post['text'];
-                    $modelUserPostMainPhoto->image = $image;
-                    $modelUserPostMainPhoto->is_publish = true;
-                    $modelUserPostMainPhoto->love_value = 0;
+                if (($flag = !empty($images))) {
 
-                    if (!($flag = $modelUserPostMainPhoto->save())) {
+                    foreach ($images as $index => $image) {
 
-                        $result['message'] = $modelUserPostMainPhoto->getErrors();
+                        $newModelUserPostMainPhoto = new UserPostMain();
+
+                        $newModelUserPostMainPhoto->unique_id = \Yii::$app->security->generateRandomString() . $index;
+                        $newModelUserPostMainPhoto->business_id = $post['business_id'];
+                        $newModelUserPostMainPhoto->user_id = $post['user_id'];
+                        $newModelUserPostMainPhoto->type = 'Photo';
+                        $newModelUserPostMainPhoto->text = $post['text'][$index];
+                        $newModelUserPostMainPhoto->image = $image;
+                        $newModelUserPostMainPhoto->is_publish = true;
+                        $newModelUserPostMainPhoto->love_value = 0;
+
+                        if (($flag = $newModelUserPostMainPhoto->save())) {
+
+                            array_push($dataUserPostMainPhoto, $newModelUserPostMainPhoto->toArray());
+                        } else {
+
+                            $result['message'] = $newModelUserPostMainPhoto->getErrors();
+                        }
                     }
                 } else {
 
