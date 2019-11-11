@@ -652,6 +652,7 @@ class BusinessController extends \yii\rest\Controller
             $models[$i]['created_at'] = \Yii::$app->formatter->asDate($dataUserPostMain['created_at'], 'long');
             $models[$i]['comment_value'] = !empty($dataUserPostMain['userPostComments']) ? count($dataUserPostMain['userPostComments']) : 0;
             $models[$i]['user_post_count'] = !empty($dataUserPostMain['user']['userPosts']) ? count($dataUserPostMain['user']['userPosts']) : 0;
+            $models[$i]['user_post_image_count'] = !empty($dataUserPostMain['userPostMains']) ? count($dataUserPostMain['userPostMains']) : 0;
 
             if (!empty($dataUserPostMain['userVotes'])) {
 
