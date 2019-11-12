@@ -574,6 +574,23 @@ class BusinessController extends \yii\rest\Controller
         } else {
 
             $modelUserPostMain['success'] = false;
+
+            $modelRatingComponent = RatingComponent::find()
+                ->andWhere(['is_active' => true])
+                ->asArray()->all();
+
+            $ratingComponentValue = [];
+
+            foreach ($modelRatingComponent as $dataRatingComponent) {
+
+                $ratingComponentValue[$i]['name'] = $dataRatingComponent['name'];
+                $ratingComponentValue[$i]['vote_value'] = 0;
+            }
+
+            $modelUserPostMain['dataUserVoteReview'] = [
+                'overall_value' => 0,
+                'ratingComponent' => $ratingComponentValue
+            ];
         }
 
         return $modelUserPostMain;
@@ -612,10 +629,11 @@ class BusinessController extends \yii\rest\Controller
                             }
                         ]);
                 },
-                'userPostLoves' => function ($query) {
+                'userPostLoves' => function ($query) use ($userId) {
 
-                    $query->select(['user_post_love.id', 'user_post_love.user_post_main_id'])
-                        ->andOnCondition(['user_post_love.is_active' => true]);
+                    $query->select(['user_post_love.id', 'user_post_love.user_post_main_id', 'user_post_love.user_id'])
+                        ->andOnCondition(['user_post_love.is_active' => true])
+                        ->andOnCondition(['user_post_love.user_id' => !empty($userId) ? $userId : null]);
                 },
                 'userPostComments' => function ($query) {
 
