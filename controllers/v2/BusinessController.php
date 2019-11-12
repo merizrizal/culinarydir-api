@@ -543,7 +543,7 @@ class BusinessController extends \yii\rest\Controller
         if (!empty($modelUserPostMain)) {
 
             $modelUserPostMain['success'] = true;
-            $modelUserPostMain['created_at'] = \Yii::$app->formatter->asDate($modelUserPostMain['created_at'], 'long');
+            $modelUserPostMain['created_at'] = $modelUserPostMain['created_at'];
             $modelUserPostMain['comment_value'] = !empty($modelUserPostMain['userPostComments']) ? count($modelUserPostMain['userPostComments']) : 0;
             $modelUserPostMain['user_post_count'] = !empty($modelUserPostMain['user']['userPosts']) ? count($modelUserPostMain['user']['userPosts']) : 0;
             $modelUserPostMain['user_post_image_count'] = !empty($modelUserPostMain['userPostMains']) ? count($modelUserPostMain['userPostMains']) : 0;
