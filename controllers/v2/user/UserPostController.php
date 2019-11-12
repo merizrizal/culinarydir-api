@@ -183,32 +183,22 @@ class UserPostController extends \yii\rest\Controller
 
             if (!empty($modelUserPostMainPhoto)) {
 
-                $images = Tools::uploadFilesWithoutModel('/img/user_post/', 'image', $modelUserPostMainPhoto->id, '', true);
+                $image = Tools::uploadFileWithoutModel('/img/user_post/', 'image', $modelUserPostMainPhoto->id, '', true);
 
-                $dataUserPostMainPhoto = [];
+                if (($flag = !empty($image))) {
 
-                if (($flag = !empty($images))) {
+                    $modelUserPostMainPhoto->unique_id = \Yii::$app->security->generateRandomString();
+                    $modelUserPostMainPhoto->business_id = $post['business_id'];
+                    $modelUserPostMainPhoto->user_id = $post['user_id'];
+                    $modelUserPostMainPhoto->type = 'Photo';
+                    $modelUserPostMainPhoto->text = $post['text'];
+                    $modelUserPostMainPhoto->image = $image;
+                    $modelUserPostMainPhoto->is_publish = true;
+                    $modelUserPostMainPhoto->love_value = 0;
 
-                    foreach ($images as $index => $image) {
+                    if (!($flag = $modelUserPostMainPhoto->save())) {
 
-                        $newModelUserPostMainPhoto = new UserPostMain();
-
-                        $newModelUserPostMainPhoto->unique_id = \Yii::$app->security->generateRandomString() . $index;
-                        $newModelUserPostMainPhoto->business_id = $post['business_id'];
-                        $newModelUserPostMainPhoto->user_id = $post['user_id'];
-                        $newModelUserPostMainPhoto->type = 'Photo';
-                        $newModelUserPostMainPhoto->text = $post['text'][$index];
-                        $newModelUserPostMainPhoto->image = $image;
-                        $newModelUserPostMainPhoto->is_publish = true;
-                        $newModelUserPostMainPhoto->love_value = 0;
-
-                        if (($flag = $newModelUserPostMainPhoto->save())) {
-
-                            array_push($dataUserPostMainPhoto, $newModelUserPostMainPhoto->toArray());
-                        } else {
-
-                            $result['message'] = $newModelUserPostMainPhoto->getErrors();
-                        }
+                        $result['message'] = $modelUserPostMainPhoto->getErrors();
                     }
                 } else {
 
