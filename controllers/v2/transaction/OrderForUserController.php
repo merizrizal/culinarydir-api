@@ -207,44 +207,47 @@ class OrderForUserController extends \yii\rest\Controller
             ->andWhere(['transaction_item.id' => !empty($post['transaction_item_id']) ? $post['transaction_item_id'] : null])
             ->one();
 
-        $transaction = \Yii::$app->db->beginTransaction();
-        $flag = false;
+        if (!empty($modelTransactionItem)) {
 
-        $amountPrior = $modelTransactionItem->amount;
-        $modelTransactionItem->amount = $post['amount'];
-        $totalAmount = $post['amount'] - $amountPrior;
+            $transaction = \Yii::$app->db->beginTransaction();
+            $flag = false;
 
-        if (($flag = $modelTransactionItem->save())) {
+            $amountPrior = $modelTransactionItem->amount;
+            $modelTransactionItem->amount = $post['amount'];
+            $totalAmount = $post['amount'] - $amountPrior;
 
-            $modelTransactionSession = $modelTransactionItem->transactionSession;
-            $modelTransactionSession->total_amount += $totalAmount;
-            $modelTransactionSession->total_price += $modelTransactionItem->price * $totalAmount;
+            if (($flag = $modelTransactionItem->save())) {
 
-            if (!($flag = $modelTransactionSession->save())) {
+                $modelTransactionSession = $modelTransactionItem->transactionSession;
+                $modelTransactionSession->total_amount += $totalAmount;
+                $modelTransactionSession->total_price += $modelTransactionItem->price * $totalAmount;
 
-                $result['error'] = $modelTransactionSession->getErrors();
+                if (!($flag = $modelTransactionSession->save())) {
+
+                    $result['error'] = $modelTransactionSession->getErrors();
+                }
+            } else {
+
+                $result['error'] = $modelTransactionItem->getErrors();
             }
-        } else {
 
-            $result['error'] = $modelTransactionItem->getErrors();
-        }
+            if ($flag) {
 
-        if ($flag) {
+                $transaction->commit();
 
-            $transaction->commit();
+                $result['success'] = true;
+                $result['amount'] = $modelTransactionItem->amount;
+                $result['total_price'] = $modelTransactionSession->total_price;
+                $result['total_amount'] = $modelTransactionSession->total_amount;
+                $result['business_name'] = $modelTransactionSession['business']['name'];
+                $result['business_location'] = $modelTransactionSession['business']['businessLocation']['village']['name'];
+            } else {
 
-            $result['success'] = true;
-            $result['amount'] = $modelTransactionItem->amount;
-            $result['total_price'] = $modelTransactionSession->total_price;
-            $result['total_amount'] = $modelTransactionSession->total_amount;
-            $result['business_name'] = $modelTransactionSession['business']['name'];
-            $result['business_location'] = $modelTransactionSession['business']['businessLocation']['village']['name'];
-        } else {
+                $transaction->rollBack();
 
-            $transaction->rollBack();
-
-            $result['success'] = false;
-            $result['amount'] = $amountPrior;
+                $result['success'] = false;
+                $result['amount'] = $amountPrior;
+            }
         }
 
         return $result;
@@ -310,15 +313,18 @@ class OrderForUserController extends \yii\rest\Controller
             ->andWhere(['transaction_item.id' => !empty($post['transaction_item_id']) ? $post['transaction_item_id'] : null])
             ->one();
 
-        $modelTransactionItem->note = !empty($post['note']) ? $post['note'] : null;
+        if (!empty($modelTransactionItem)) {
 
-        if ($modelTransactionItem->save()) {
+            $modelTransactionItem->note = !empty($post['note']) ? $post['note'] : null;
 
-            $result['success'] = true;
-        } else {
+            if ($modelTransactionItem->save()) {
 
-            $result['success'] = false;
-            $result['error'] = $modelTransactionItem->getErrors();
+                $result['success'] = true;
+            } else {
+
+                $result['success'] = false;
+                $result['error'] = $modelTransactionItem->getErrors();
+            }
         }
 
         return $result;
