@@ -47,7 +47,7 @@ class BusinessController extends \yii\rest\Controller
                         'business-product-category' => ['GET'],
                         'business-promo' => ['GET'],
                         'my-review' => ['GET'],
-                        'business-review' => ['GET'],
+                        'all-review' => ['GET'],
                         'count-menu-order' => ['GET']
                     ],
                 ],
