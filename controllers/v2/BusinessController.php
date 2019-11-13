@@ -91,17 +91,17 @@ class BusinessController extends \yii\rest\Controller
         return $model;
     }
 
-    public function actionAlbumList($id, $imageType = null)
+    public function actionAlbumList($businessId, $imageType = null)
     {
         $provider = null;
 
         $modelBusinessImage = BusinessImage::find()
             ->select(['id', 'business_id', 'image', 'CONCAT(category) AS image_type', 'created_at'])
-            ->andWhere(['business_id' => $id]);
+            ->andWhere(['business_id' => $businessId]);
 
         $modelUserPostMain = UserPostMain::find()
             ->select(['id', 'business_id', 'image', 'CONCAT(\'User Post\') AS image_type', 'created_at'])
-            ->andWhere(['business_id' => $id])
+            ->andWhere(['business_id' => $businessId])
             ->andWhere(['type' => 'Photo']);
 
         $model = (new \yii\db\Query())
@@ -116,16 +116,16 @@ class BusinessController extends \yii\rest\Controller
         return $provider;
     }
 
-    public function actionCountCategoryAlbum($id) {
+    public function actionCountCategoryAlbum($businessId) {
 
         $modelBusinessImage = BusinessImage::find()
             ->select(['COUNT(id) AS count', 'CONCAT(category) as image_type'])
-            ->andWhere(['business_id' => $id])
+            ->andWhere(['business_id' => $businessId])
             ->groupBy('CONCAT(category)');
 
         $modelUserPostMain = UserPostMain::find()
             ->select(['COUNT(id) AS count', 'CONCAT(\'User Post\') as image_type'])
-            ->andWhere(['business_id' => $id])
+            ->andWhere(['business_id' => $businessId])
             ->andWhere(['type' => 'Photo'])
             ->groupBy('CONCAT(\'User Post\')');
 
@@ -161,7 +161,7 @@ class BusinessController extends \yii\rest\Controller
         return $data;
     }
 
-    public function actionBusinessDetail($id, $userId = null)
+    public function actionBusinessDetail($businessId, $userId = null)
     {
         \Yii::$app->formatter->timeZone = 'Asia/Jakarta';
 
@@ -234,7 +234,7 @@ class BusinessController extends \yii\rest\Controller
                         ->andOnCondition(['product_service.not_active' => false]);
                 }
             ])
-            ->andWhere(['business.id' => $id])
+            ->andWhere(['business.id' => $businessId])
             ->asArray()->one();
 
         $data['businessProductCategories'] = BusinessProductCategory::find()
@@ -269,7 +269,7 @@ class BusinessController extends \yii\rest\Controller
 
         $data['userLoves'] = UserLove::find()
             ->select(['business_id'])
-            ->andWhere(['business_id' => $id])
+            ->andWhere(['business_id' => $businessId])
             ->andWhere(['user_id' => !empty($userId) ? $userId : null])
             ->andWhere(['is_active' => true])
             ->asArray()->all();
@@ -390,7 +390,7 @@ class BusinessController extends \yii\rest\Controller
         return $data;
     }
 
-    public function actionBusinessProductCategory($id, $userId = null)
+    public function actionBusinessProductCategory($businessId, $userId = null)
     {
         $result = [];
 
@@ -411,7 +411,7 @@ class BusinessController extends \yii\rest\Controller
                     ->andOnCondition(['business_product.not_active' => false]);
                 }
             ])
-            ->andWhere(['business_product_category.business_id' => $id])
+            ->andWhere(['business_product_category.business_id' => $businessId])
             ->andWhere(['OR', ['product_category.type' => 'Menu'], ['product_category.type' => 'Specific-Menu']])
             ->asArray()->all();
 
@@ -456,7 +456,7 @@ class BusinessController extends \yii\rest\Controller
         return $result;
     }
 
-    public function actionBusinessPromo($id)
+    public function actionBusinessPromo($businessId)
     {
         $modelBusinessPromo = BusinessPromo::find()
             ->select([
@@ -465,7 +465,7 @@ class BusinessController extends \yii\rest\Controller
             ])
             ->andWhere(['>=', 'business_promo.date_end', \Yii::$app->formatter->asDate(time())])
             ->andWhere(['business_promo.not_active' => false])
-            ->andWhere(['business_promo.business_id' => $id])
+            ->andWhere(['business_promo.business_id' => $businessId])
             ->asArray()->all();
 
         if (!empty($modelBusinessPromo)) {
@@ -480,7 +480,7 @@ class BusinessController extends \yii\rest\Controller
         return $modelBusinessPromo;
     }
 
-    public function actionMyReview($id, $userId)
+    public function actionMyReview($businessId, $userId)
     {
         $modelUserPostMain = UserPostMain::find()
             ->select([
@@ -533,7 +533,7 @@ class BusinessController extends \yii\rest\Controller
                 }
             ])
             ->andWhere(['user_post_main.parent_id' => null])
-            ->andWhere(['user_post_main.business_id' => $id])
+            ->andWhere(['user_post_main.business_id' => $businessId])
             ->andWhere(['user_post.user_id' => $userId])
             ->andWhere(['user_post_main.type' => 'Review'])
             ->andWhere(['user_post_main.is_publish' => true])
@@ -579,7 +579,7 @@ class BusinessController extends \yii\rest\Controller
         return $modelUserPostMain;
     }
 
-    public function actionBusinessReview($id, $userId = null)
+    public function actionAllReview($businessId, $userId = null)
     {
         $modelUserPostMain = UserPostMain::find()
             ->select([
@@ -632,7 +632,7 @@ class BusinessController extends \yii\rest\Controller
                 }
             ])
             ->andWhere(['user_post_main.parent_id' => null])
-            ->andWhere(['user_post_main.business_id' => $id])
+            ->andWhere(['user_post_main.business_id' => $businessId])
             ->andWhere(['user_post_main.type' => 'Review'])
             ->andWhere(['user_post_main.is_publish' => true])
             ->andFilterWhere(['<>', 'user_post_main.user_id' , !empty($userId) ? $userId : null])
@@ -684,7 +684,7 @@ class BusinessController extends \yii\rest\Controller
         return $provider;
     }
 
-    public function actionCountMenuOrder($id)
+    public function actionCountMenuOrder($businessId)
     {
         $modelBusiness = Business::find()
             ->select(['business.id'])
@@ -699,7 +699,7 @@ class BusinessController extends \yii\rest\Controller
                     $query->select(['transaction_item.business_product_id', 'transaction_item.amount']);
                 }
             ])
-            ->andWhere(['business.id' => $id])
+            ->andWhere(['business.id' => $businessId])
             ->asArray()->one();
 
         $idx = 0;
