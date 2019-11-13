@@ -157,6 +157,7 @@ class UserPostController extends \yii\rest\Controller
 
             $result['success'] = true;
             $result['is_active'] = $modelUserPostLove->is_active;
+            $result['love_value'] = $modelUserPostMain->love_value;
         } else {
 
             $transaction->rollBack();
