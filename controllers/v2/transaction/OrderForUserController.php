@@ -204,7 +204,7 @@ class OrderForUserController extends \yii\rest\Controller
 
         $modelTransactionItem = TransactionItem::find()
             ->joinWith(['transactionSession'])
-            ->andWhere(['transaction_item.id' => !empty($post['id']) ? $post['id'] : null])
+            ->andWhere(['transaction_item.id' => !empty($post['transaction_item_id']) ? $post['transaction_item_id'] : null])
             ->one();
 
         $transaction = \Yii::$app->db->beginTransaction();
@@ -258,7 +258,7 @@ class OrderForUserController extends \yii\rest\Controller
 
         $modelTransactionItem = TransactionItem::find()
             ->joinWith(['transactionSession'])
-            ->andWhere(['transaction_item.id' => !empty($post['id']) ? $post['id'] : null])
+            ->andWhere(['transaction_item.id' => !empty($post['transaction_item_id']) ? $post['transaction_item_id'] : null])
             ->one();
 
         $transaction = \Yii::$app->db->beginTransaction();
@@ -307,7 +307,7 @@ class OrderForUserController extends \yii\rest\Controller
         $result = [];
 
         $modelTransactionItem = TransactionItem::find()
-            ->andWhere(['transaction_item.id' => !empty($post['id']) ? $post['id'] : null])
+            ->andWhere(['transaction_item.id' => !empty($post['transaction_item_id']) ? $post['transaction_item_id'] : null])
             ->one();
 
         $modelTransactionItem->note = !empty($post['note']) ? $post['note'] : null;
