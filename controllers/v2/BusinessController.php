@@ -559,6 +559,7 @@ class BusinessController extends \yii\rest\Controller
 
                         $totalVoteValue += $dataUserVote['vote_value'];
 
+                        $ratingComponentValue[$i]['rating_component_id'] = $dataUserVote['rating_component_id'];
                         $ratingComponentValue[$i]['name'] = $dataUserVote['name'];
                         $ratingComponentValue[$i]['vote_value'] = $dataUserVote['vote_value'];
                     }
@@ -583,6 +584,7 @@ class BusinessController extends \yii\rest\Controller
 
             foreach ($modelRatingComponent as $i => $dataRatingComponent) {
 
+                $ratingComponentValue[$i]['rating_component_id'] = $dataRatingComponent['id'];
                 $ratingComponentValue[$i]['name'] = $dataRatingComponent['name'];
                 $ratingComponentValue[$i]['vote_value'] = 0;
             }

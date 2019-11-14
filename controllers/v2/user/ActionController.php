@@ -161,7 +161,7 @@ class ActionController extends \yii\rest\Controller
         $modelUserPostMain->business_id = $post['business_id'];
         $modelUserPostMain->user_id = $post['user_id'];
         $modelUserPostMain->type = 'Review';
-        $modelUserPostMain->text = preg_replace("/\r\n/", "", $post['Post']['review']['text']);
+        $modelUserPostMain->text = preg_replace("/\r\n/", "", $post['text']);
         $modelUserPostMain->is_publish = true;
         $modelUserPostMain->love_value = 0;
 
@@ -244,7 +244,7 @@ class ActionController extends \yii\rest\Controller
 
         if ($flag) {
 
-            foreach ($post['Post']['review']['rating'] as $ratingComponentId => $voteValue) {
+            foreach ($post['rating'] as $ratingComponentId => $voteValue) {
 
                 $modelUserVote = new UserVote();
 
@@ -276,13 +276,13 @@ class ActionController extends \yii\rest\Controller
                 ->andWhere(['business_id' => $modelUserPostMain->business_id])
                 ->one();
 
-            foreach ($post['Post']['review']['rating'] as $votePoint) {
+            foreach ($post['rating'] as $votePoint) {
 
                 $modelBusinessDetail->total_vote_points += $votePoint;
             }
 
             $modelBusinessDetail->voters += 1;
-            $modelBusinessDetail->vote_points = $modelBusinessDetail->total_vote_points / count($post['Post']['review']['rating']);
+            $modelBusinessDetail->vote_points = $modelBusinessDetail->total_vote_points / count($post['rating']);
             $modelBusinessDetail->vote_value = $modelBusinessDetail->vote_points / $modelBusinessDetail->voters;
 
             $flag = $modelBusinessDetail->save();
@@ -290,7 +290,7 @@ class ActionController extends \yii\rest\Controller
 
         if ($flag) {
 
-            foreach ($post['Post']['review']['rating'] as $ratingComponentId => $votePoint) {
+            foreach ($post['rating'] as $ratingComponentId => $votePoint) {
 
                 $modelBusinessDetailVote = BusinessDetailVote::find()
                     ->andWhere(['business_id' => $modelUserPostMain->business_id])
@@ -338,11 +338,13 @@ class ActionController extends \yii\rest\Controller
         $flag = false;
         $result = [];
 
+        return $post;
+
         $isUpdate = $modelUserPostMain->is_publish;
 
         $modelPost = new Post();
 
-        $modelUserPostMain->text = preg_replace("/\r\n/", " ", $post['Post']['review']['text']);
+        $modelUserPostMain->text = preg_replace("/\r\n/", " ", $post['text']);
         $modelUserPostMain->is_publish = true;
         $modelUserPostMain->created_at = \Yii::$app->formatter->asDatetime(time());
 
@@ -452,7 +454,7 @@ class ActionController extends \yii\rest\Controller
             $prevUserVote = [];
             $prevUserVoteTotal = 0;
 
-            foreach ($post['Post']['review']['rating'] as $ratingComponentId => $voteValue) {
+            foreach ($post['rating'] as $ratingComponentId => $voteValue) {
 
                 $modelUserVote = UserVote::find()
                     ->andWhere(['user_post_main_id' => $modelUserPostMain->id])
@@ -490,7 +492,7 @@ class ActionController extends \yii\rest\Controller
 
             $modelBusinessDetail->total_vote_points -= $prevUserVoteTotal;
 
-            foreach ($post['Post']['review']['rating'] as $votePoint) {
+            foreach ($post['rating'] as $votePoint) {
 
                 $modelBusinessDetail->total_vote_points += $votePoint;
             }
@@ -504,7 +506,7 @@ class ActionController extends \yii\rest\Controller
 
         if ($flag) {
 
-            foreach ($post['Post']['review']['rating'] as $ratingComponentId => $votePoint) {
+            foreach ($post['rating'] as $ratingComponentId => $votePoint) {
 
                 $modelBusinessDetailVote = BusinessDetailVote::find()
                     ->andWhere(['business_id' => $post['business_id']])
