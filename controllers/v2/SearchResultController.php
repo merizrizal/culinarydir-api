@@ -125,6 +125,25 @@ class SearchResultController extends \yii\rest\Controller
             if (\Yii::$app->request->get('search_type') == 'favorite') {
 
                 $modelBusiness = $modelBusiness->andFilterWhere(['business_category.category_id' => \Yii::$app->request->get('category_id')]);
+
+                if (!empty(\Yii::$app->request->get('facility_id'))) {
+
+                    $facilityCondition = '';
+
+                    foreach (\Yii::$app->request->get('facility_id') as $facilityId) {
+
+                        $facilityCondition .= 'business_facility.facility_id = \'' . $facilityId . '\' OR ';
+                    }
+
+                    $facilityCondition = '
+                        (SELECT COUNT(business_facility.facility_id)
+                            FROM business_facility
+                            WHERE business_facility.business_id = business.id
+                                AND business_facility.is_active = TRUE
+                                AND (' . trim($facilityCondition, 'OR ') . '))';
+
+                    $modelBusiness = $modelBusiness->andFilterWhere([$facilityCondition => count(\Yii::$app->request->get('facility_id'))]);
+                }
             } else if (\Yii::$app->request->get('search_type') == 'online-order') {
 
                 $modelBusiness = $modelBusiness->andFilterWhere(['product_service.code_name' => 'order-online']);
