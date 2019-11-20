@@ -338,8 +338,6 @@ class ActionController extends \yii\rest\Controller
         $flag = false;
         $result = [];
 
-        return $post;
-
         $isUpdate = $modelUserPostMain->is_publish;
 
         $modelPost = new Post();
