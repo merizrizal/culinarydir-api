@@ -180,9 +180,17 @@ class SearchResultController extends \yii\rest\Controller
                 }
             }
 
-            $modelBusiness = $modelBusiness->orderBy(['business.id' => SORT_DESC])
-                ->distinct()
-                ->asArray();
+            if (\Yii::$app->request->get('sort_by') == 'rating') {
+
+                $modelBusiness = $modelBusiness->orderBy(['business_detail.vote_points' => SORT_DESC])
+                    ->distinct()
+                    ->asArray();
+            } else {
+
+                $modelBusiness = $modelBusiness->orderBy(['business.id' => SORT_DESC])
+                    ->distinct()
+                    ->asArray();
+            }
 
             $provider = new ActiveDataProvider([
                 'query' => $modelBusiness,
@@ -235,9 +243,7 @@ class SearchResultController extends \yii\rest\Controller
                 }
 
                 $modelBusinessPromo = $modelBusinessPromo->orderBy(['business_promo.id' => SORT_DESC])
-
                     ->andFilterWhere(['business.id' => 'FALSE'])
-
                     ->distinct()
                     ->asArray();
 
