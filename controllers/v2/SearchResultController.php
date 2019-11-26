@@ -5,6 +5,7 @@ namespace api\controllers\v2;
 use core\models\Business;
 use core\models\BusinessPromo;
 use yii\data\ActiveDataProvider;
+use yii\db\Expression;
 use yii\filters\VerbFilter;
 
 class SearchResultController extends \yii\rest\Controller
@@ -46,7 +47,7 @@ class SearchResultController extends \yii\rest\Controller
                     'business_detail.voters', 'business_detail.vote_value', 'business_detail.vote_points', 'business_detail.love_value',
                     'business_location.address_type', 'business_location.address',
                     'business_location.city_id', 'business_location.coordinate',
-                    'city.name as city_name'
+                    'city.name as city_name',
                 ])
                 ->joinWith([
 
@@ -62,12 +63,12 @@ class SearchResultController extends \yii\rest\Controller
                     'businessImages' => function ($query) {
 
                         $query->select(['business_image.business_id', 'business_image.image'])
-                            ->andOnCondition(['type' => 'Profile']);
+                            ->andOnCondition(['business_image.type' => 'Profile']);
                     },
                     'businessLocation' => function ($query) {
 
                         $query->select([
-                                'business_location.business_id', 'business_location.city_id'
+                            'business_location.business_id', 'business_location.city_id'
                             ]);
                     },
                     'businessLocation.city' => function ($query) {
@@ -185,6 +186,18 @@ class SearchResultController extends \yii\rest\Controller
                 $modelBusiness = $modelBusiness->orderBy(['business_detail.vote_points' => SORT_DESC])
                     ->distinct()
                     ->asArray();
+            } else if (\Yii::$app->request->get('sort_by') == 'jarak') {
+
+                if (!empty(\Yii::$app->request->get('user_coordinate_lat')) && !empty(\Yii::$app->request->get('user_coordinate_lng'))) {
+
+                    $latitude = \Yii::$app->request->get('user_coordinate_lat');
+                    $longitude = \Yii::$app->request->get('user_coordinate_lng');
+
+                    $modelBusiness = $modelBusiness->addSelect(new Expression('(acos(sin(radians(split_part("business_location"."coordinate" , \',\', 1)::double precision)) * sin(radians(' . $latitude . ')) + cos(radians(split_part("business_location"."coordinate" , \',\', 1)::double precision)) * cos(radians(' . $latitude . ')) * cos(radians(split_part("business_location"."coordinate" , \',\', 2)::double precision) - radians(' . $longitude . '))) * 6356) AS distance'))
+                        ->orderBy(['distance' => SORT_ASC])
+                        ->distinct()
+                        ->asArray();
+                }
             } else {
 
                 $modelBusiness = $modelBusiness->orderBy(['business.id' => SORT_DESC])
