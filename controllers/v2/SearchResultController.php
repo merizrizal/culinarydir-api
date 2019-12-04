@@ -47,7 +47,7 @@ class SearchResultController extends \yii\rest\Controller
                     'business_detail.voters', 'business_detail.vote_value', 'business_detail.vote_points', 'business_detail.love_value',
                     'business_location.address_type', 'business_location.address',
                     'business_location.city_id', 'business_location.coordinate',
-                    'city.name as city_name',
+                    'city.name as city_name', 'district.name as district_name', 'village.name as village_name'
                 ])
                 ->joinWith([
 
@@ -68,12 +68,20 @@ class SearchResultController extends \yii\rest\Controller
                     'businessLocation' => function ($query) {
 
                         $query->select([
-                            'business_location.business_id', 'business_location.city_id'
-                            ]);
+                            	'business_location.business_id', 'business_location.city_id', 'business_location.district_id','business_location.village_id'
+                        	]);
                     },
                     'businessLocation.city' => function ($query) {
 
                         $query->select(['city.id']);
+                    },
+                    'businessLocation.district' => function ($query) {
+
+                        $query->select(['district.id']);
+                    },
+                    'businessLocation.village' => function ($query) {
+
+                        $query->select(['village.id']);
                     },
                     'businessProductCategories' => function ($query) {
 

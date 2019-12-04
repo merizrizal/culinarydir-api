@@ -5,16 +5,16 @@ namespace api\controllers\v2\user;
 use common\models\LoginForm;
 use core\models\Person;
 use core\models\User;
+use core\models\UserAkses;
+use core\models\UserAksesAppModule;
 use core\models\UserLevel;
 use core\models\UserPerson;
+use core\models\UserRole;
 use core\models\UserSocialMedia;
 use frontend\models\RequestResetPassword;
 use frontend\models\ResetPassword;
 use frontend\models\UserRegister;
 use yii\filters\VerbFilter;
-use core\models\UserRole;
-use core\models\UserAkses;
-use core\models\UserAksesAppModule;
 
 class IdentityController extends \yii\rest\Controller
 {
@@ -258,6 +258,7 @@ class IdentityController extends \yii\rest\Controller
                         $modelPerson->email = $post['email'];
                         $modelPerson->phone = !empty($post['phone']) ? $post['phone'] : null;
                         $modelPerson->city_id = !empty($post['city_id']) ? $post['city_id'] : null;
+                        $modelPerson->about_me = !empty($post['about_me']) ? $post['about_me'] : null;
 
                         if (($flag = $modelPerson->save())) {
 
