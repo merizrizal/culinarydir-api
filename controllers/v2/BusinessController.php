@@ -460,8 +460,8 @@ class BusinessController extends \yii\rest\Controller
     {
         $modelBusinessPromo = BusinessPromo::find()
             ->select([
-                'business_promo.id', 'business_promo.title', 'business_promo.short_description', 'business_promo.business_id',
-                'business_promo.image', 'business_promo.date_start', 'business_promo.date_end'
+                'business_promo.id', 'business_promo.title', 'business_promo.short_description', 'business_promo.description',
+                'business_promo.business_id', 'business_promo.image', 'business_promo.date_start', 'business_promo.date_end'
             ])
             ->andWhere(['>=', 'business_promo.date_end', \Yii::$app->formatter->asDate(time())])
             ->andWhere(['business_promo.not_active' => false])
