@@ -458,6 +458,8 @@ class BusinessController extends \yii\rest\Controller
 
     public function actionBusinessPromo($businessId)
     {
+        \Yii::$app->formatter->timeZone = 'Asia/Jakarta';
+
         $modelBusinessPromo = BusinessPromo::find()
             ->select([
                 'business_promo.id', 'business_promo.title', 'business_promo.short_description', 'business_promo.description',
@@ -467,15 +469,6 @@ class BusinessController extends \yii\rest\Controller
             ->andWhere(['business_promo.not_active' => false])
             ->andWhere(['business_promo.business_id' => $businessId])
             ->asArray()->all();
-
-        if (!empty($modelBusinessPromo)) {
-
-            foreach ($modelBusinessPromo as $i => $dataBusinessPromo) {
-
-                $modelBusinessPromo[$i]['date_start'] = \Yii::$app->formatter->asDate($dataBusinessPromo['date_start'], 'medium');
-                $modelBusinessPromo[$i]['date_end'] = \Yii::$app->formatter->asDate($dataBusinessPromo['date_end'], 'medium');
-            }
-        }
 
         return $modelBusinessPromo;
     }
