@@ -102,7 +102,8 @@ class BusinessController extends \yii\rest\Controller
         $modelUserPostMain = UserPostMain::find()
             ->select(['id', 'business_id', 'image', 'CONCAT(\'User Post\') AS image_type', 'created_at'])
             ->andWhere(['business_id' => $businessId])
-            ->andWhere(['type' => 'Photo']);
+            ->andWhere(['type' => 'Photo'])
+            ->andWhere(['is_publish' => true]);
 
         $model = (new \yii\db\Query())
             ->from(['image_business_user' => $modelBusinessImage->union($modelUserPostMain)])
@@ -127,6 +128,7 @@ class BusinessController extends \yii\rest\Controller
             ->select(['COUNT(id) AS count', 'CONCAT(\'User Post\') as image_type'])
             ->andWhere(['business_id' => $businessId])
             ->andWhere(['type' => 'Photo'])
+            ->andWhere(['is_publish' => true])
             ->groupBy('CONCAT(\'User Post\')');
 
         $model = (new \yii\db\Query())
