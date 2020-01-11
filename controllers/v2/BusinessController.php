@@ -91,7 +91,7 @@ class BusinessController extends \yii\rest\Controller
         return $model;
     }
 
-    public function actionAlbumList($businessId, $imageType = null)
+    public function actionAlbumList($businessId, $imageType)
     {
         $provider = null;
 
@@ -106,9 +106,14 @@ class BusinessController extends \yii\rest\Controller
             ->andWhere(['is_publish' => true]);
 
         $model = (new \yii\db\Query())
-            ->from(['image_business_user' => $modelBusinessImage->union($modelUserPostMain)])
-            ->andFilterWhere(['image_type' => $imageType])
-            ->orderBy(['created_at' => SORT_DESC]);
+            ->from(['image_business_user' => $modelBusinessImage->union($modelUserPostMain)]);
+
+        if ($imageType != 'All') {
+
+            $model = $model->andFilterWhere(['image_type' => $imageType]);
+        }
+
+        $model = $model->orderBy(['created_at' => SORT_DESC]);
 
         $provider = new ActiveDataProvider([
             'query' => $model,
