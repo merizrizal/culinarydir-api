@@ -178,21 +178,20 @@ class UserPostController extends \yii\rest\Controller
         $result = [];
         $transaction = \Yii::$app->db->beginTransaction();
 
-        if (!empty($post['user_id'] && !empty($post['business_id']))) {
+        $images = Tools::uploadFilesWithoutModel('/img/user_post/', 'image', $post['business_id'], '', true);
 
-            $modelUserPostMainPhoto = new UserPostMain();
+        if (!empty($post['user_id']) && !empty($post['business_id']) && !empty($images)) {
 
-            if (!empty($modelUserPostMainPhoto)) {
-
-                $image = Tools::uploadFileWithoutModel('/img/user_post/', 'image', $modelUserPostMainPhoto->id, '', true);
+            foreach ($images as $index => $image) {
 
                 if (($flag = !empty($image))) {
 
+                    $modelUserPostMainPhoto = new UserPostMain();
                     $modelUserPostMainPhoto->unique_id = \Yii::$app->security->generateRandomString();
                     $modelUserPostMainPhoto->business_id = $post['business_id'];
                     $modelUserPostMainPhoto->user_id = $post['user_id'];
                     $modelUserPostMainPhoto->type = 'Photo';
-                    $modelUserPostMainPhoto->text = $post['text'];
+                    $modelUserPostMainPhoto->text = $post['text'][$index];
                     $modelUserPostMainPhoto->image = $image;
                     $modelUserPostMainPhoto->is_publish = true;
                     $modelUserPostMainPhoto->love_value = 0;
@@ -203,21 +202,21 @@ class UserPostController extends \yii\rest\Controller
                     }
                 } else {
 
-                    $result['message'] = 'Upload gambar gagal';
-                }
-            } else {
+                    $result['message'] = 'Upload foto gagal';
 
-                $result['message'] = 'Business ID tidak ditemukan';
+                    break;
+                }
             }
         } else {
 
-            $result['message'] = 'Business ID tidak boleh kosong';
+            $result['message'] = 'Data tidak boleh kosong';
         }
 
         if ($flag) {
 
             $result['success'] = true;
             $result['message'] = 'Upload foto Berhasil';
+            $result['image_count'] = count($images);
 
             $transaction->commit();
         } else {
